@@ -1,0 +1,2447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analisador Horas Extras Pro X (v8 - Dashboard)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+  <style>
+    /* === Reset e Variáveis Globais === */
+    :root {
+      --font-family-system: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --bg-color: #f0f2f5;
+      --sidebar-bg: #ffffff;
+      --content-bg: #ffffff;
+      --card-bg: #ffffff;
+      --text-color: #1d2129;
+      --text-muted: #606770;
+      --text-muted-light: #8a8d91;
+      --primary-color: #007aff;
+      --primary-hover: #005ec2;
+      --border-color: #d9dadc;
+      --input-bg: #f0f2f5;
+      --input-border: #ced0d4;
+      --input-border-focus: var(--primary-color);
+      --input-border-invalid: #fa383e;
+      --button-text-color: #ffffff;
+      --table-header-bg: #f5f6f7;
+      --table-row-hover: #eef2ff;
+      --table-row-even-bg: transparent;
+      --danger-color: #fa383e;
+      --success-color: #31a24c;
+      --warning-color: #f5a623;
+      --info-color: #1877f2;
+      --neutral-color: #606770;
+      --font-family: var(--font-family-system);
+      --border-radius: 8px;
+      --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
+      --sidebar-width: 280px;
+      --header-height: 55px;
+      --transition-speed: 0.2s;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+      font-size: 14px;
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* === Layout Principal === */
+    .dashboard-container {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+    }
+    #sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      padding: 15px;
+      height: 100%;
+      overflow-y: auto;
+      flex-shrink: 0;
+      transition: width var(--transition-speed) ease;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 1px 0 4px rgba(0,0,0,0.06);
+      z-index: 900;
+    }
+    .sidebar-header {
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    #sidebar h2 {
+      font-size: 1.1em;
+      margin: 0;
+      color: var(--text-color);
+      font-weight: 600;
+    }
+    .sidebar-content {
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-right: -15px;
+      padding-right: 15px;
+    }
+    #main-content {
+      flex-grow: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .content-header {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 25px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--content-bg);
+      flex-shrink: 0;
+    }
+    .content-header h2 {
+      margin: 0;
+      font-size: 1.3em;
+      font-weight: 600;
+      color: var(--text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .content-header #exportPdfBtn {
+      padding: 6px 12px;
+      font-size: 0.85em;
+    }
+    .content-body {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 25px;
+      background-color: var(--bg-color);
+    }
+    .content-wrapper {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    
+    /* === Área de Configuração === */
+    #setup-container { display: block; }
+    #setup-card {
+      background-color: var(--card-bg);
+      padding: 25px 30px;
+      border-radius: var(--border-radius);
+      box-shadow: none;
+      border: none;
+    }
+    #setup-card h3 {
+      font-size: 1.2em;
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: var(--text-color);
+      font-weight: 600;
+    }
+    #setup-card label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: var(--text-muted);
+      font-size: 0.9em;
+    }
+    #setup-card input[type="file"] {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid var(--input-border);
+      background-color: var(--input-bg);
+      border-radius: var(--border-radius);
+      font-size: 0.9em;
+    }
+    #setup-card input[type="file"]::file-selector-button {
+      background-color: #e4e6eb;
+      color: var(--text-color);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      font-size: 0.9em;
+      font-weight: 500;
+    }
+    #setup-card input[type="text"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--input-border);
+      background-color: var(--input-bg);
+      border-radius: var(--border-radius);
+      font-size: 0.9em;
+      transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+      margin-bottom: 8px;
+    }
+    #setup-card input[type="text"]:focus {
+      outline: none;
+      border-color: var(--input-border-focus);
+      box-shadow: 0 0 0 2px rgba(0,122,255,0.2);
+      background-color: #fff;
+    }
+    #setup-card input[type="text"].input-invalid {
+      border-color: var(--input-border-invalid);
+      background-color: #ffeef0;
+    }
+    #setup-card input[type="text"].input-invalid:focus {
+      box-shadow: 0 0 0 2px rgba(250,56,62,0.2);
+    }
+    #file-list {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 20px 0;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    #file-list li {
+      background-color: transparent;
+      padding: 12px 0;
+      margin: 0;
+      border: none;
+      border-bottom: 1px solid var(--border-color);
+      border-radius: 0;
+      font-size: 0.9em;
+    }
+    #file-list li:last-child { border-bottom: none; }
+    #file-list li .file-info { margin-bottom: 6px; }
+    #file-list li .file-name { font-weight: 500; }
+    #file-list li .remove-btn { padding: 4px 8px; font-size: 0.75em; }
+    #analyzeBtn { margin-top: 10px; font-weight: 600; }
+    
+    /* === Barra Lateral (Setores) === */
+    #sidebar-placeholder {
+      color: var(--text-muted);
+      font-style: italic;
+      font-size: 0.9em;
+      text-align: center;
+      margin-top: 30px;
+    }
+    #sector-overview-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #sector-overview-list li {
+      padding: 10px 15px;
+      margin-bottom: 4px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9em;
+      border: 1px solid transparent;
+      font-weight: 500;
+      color: var(--text-color);
+    }
+    #sector-overview-list li:hover {
+      background-color: #e4e6eb;
+    }
+    #sector-overview-list li.selected {
+      background-color: var(--primary-color);
+      color: var(--button-text-color);
+      font-weight: 600;
+    }
+    #sector-overview-list .sector-name {
+      flex-grow: 1;
+      margin-right: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #sector-overview-list .sector-total {
+      font-size: 0.85em;
+      font-weight: 400;
+      color: var(--text-muted);
+      white-space: nowrap;
+      background-color: transparent;
+      padding: 0;
+      border-radius: 0;
+    }
+    #sector-overview-list li.selected .sector-total {
+      color: rgba(255,255,255,0.8);
+    }
+    
+    /* === Área de Resultados e Abas === */
+    #results-container {
+      display: none;
+      flex-grow: 1;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--content-bg);
+      padding: 0 25px;
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+    .tab-link {
+      padding: 12px 16px;
+      cursor: pointer;
+      border: none;
+      border-bottom: 2px solid transparent;
+      background-color: transparent;
+      color: var(--text-muted);
+      font-size: 0.95em;
+      font-weight: 500;
+      margin-bottom: -1px;
+      transition: color var(--transition-speed) ease, border-color var(--transition-speed) ease;
+      white-space: nowrap;
+    }
+    .tab-link:hover { color: var(--text-color); }
+    .tab-link.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      font-weight: 600;
+    }
+    .tab-panels {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    .tab-panels .tab-panel {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    .tab-panels .tab-panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    .content-card {
+      background-color: var(--card-bg);
+      padding: 20px 25px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--card-shadow);
+      margin-bottom: 20px;
+      border: 1px solid var(--border-color);
+    }
+    .content-card h4 {
+      font-size: 1.05em;
+      color: var(--text-color);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      margin-bottom: 15px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .content-card h4 .csv-btn { margin: 0; }
+    
+    /* === Tabelas === */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 0.9em;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background-color: var(--table-header-bg);
+      padding: 10px 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.85em;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+      text-align: left;
+    }
+    th.sortable { padding-right: 24px; }
+    th.sortable::before,
+    th.sortable::after {
+      content: '';
+      position: absolute;
+      right: 8px;
+      width: 12px;
+      height: 12px;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.4;
+      transition: opacity var(--transition-speed) ease;
+    }
+    th.sortable::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236c757d'%3E%3Cpath fill-rule='evenodd' d='M7.21 4.79l-3.5 3.5a.75.75 0 001.06 1.06L8 6.31l3.22 3.04a.75.75 0 101.06-1.06l-3.5-3.5a.75.75 0 00-1.06 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
+      top: calc(50% - 9px);
+    }
+    th.sortable::after {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236c757d'%3E%3Cpath fill-rule='evenodd' d='M8.79 11.21l3.5-3.5a.75.75 0 00-1.06-1.06L8 9.69 4.78 6.65a.75.75 0 00-1.06 1.06l3.5 3.5a.75.75 0 001.06 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
+      top: calc(50% - 1px);
+    }
+    th.sortable:hover::before,
+    th.sortable:hover::after { opacity: 0.7; }
+    th.sort-asc::before,
+    th.sort-desc::after { opacity: 1; }
+    th.sort-asc::after,
+    th.sort-desc::before { opacity: 0.2; }
+    
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+      text-align: left;
+      background-color: var(--card-bg);
+      position: relative;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    
+    /* Sticky first column */
+    td:first-child, th:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      border-right: 1px solid var(--border-color);
+    }
+    th:first-child { background-color: var(--table-header-bg); }
+    td:first-child { background-color: var(--card-bg); }
+    
+    tbody tr:hover td { background-color: var(--table-row-hover); }
+    tbody tr:hover td:first-child { background-color: var(--table-row-hover); }
+    
+    table[id^="collab-table-"] td:first-child:not([rowspan]) { padding-left: 22px; }
+    table[id^="collab-table-"] td:first-child[rowspan]::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: -1px;
+      bottom: -1px;
+      width: 3px;
+      background-color: var(--primary-color);
+      border-radius: 3px;
+      opacity: 0.6;
+      z-index: 0;
+    }
+    tbody tr:hover td:first-child[rowspan]::before { opacity: 0.9; }
+    
+    tbody tr.total-he-row td {
+      font-weight: 600;
+      background-color: #f5f6f7 !important;
+      color: var(--text-color);
+      border-top: 1px solid var(--border-color);
+    }
+    tbody tr.total-he-row td:first-child { background-color: #f5f6f7 !important; }
+    tbody tr.total-he-row td:first-child[rowspan]::before { display: none; }
+    
+    td.diff-pos { color: var(--danger-color); font-weight: 500; }
+    td.diff-neg { color: var(--success-color); font-weight: 500; }
+    td.diff-zero { color: var(--text-muted-light); }
+    td.collab-name { cursor: pointer; color: var(--primary-color); text-decoration: none; font-weight: 500; }
+    td.collab-name:hover { color: var(--primary-hover); text-decoration: underline; }
+    
+    /* === Filtro === */
+    .filter-container { margin-bottom: 15px; }
+    .filter-container label {
+      font-size: 0.85em;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: block;
+    }
+    .filter-input {
+      max-width: 300px;
+      padding: 7px 10px;
+      font-size: 0.9em;
+      border: 1px solid var(--input-border);
+      border-radius: var(--border-radius);
+      background-color: var(--input-bg);
+    }
+    .filter-input:focus {
+      outline: none;
+      border-color: var(--input-border-focus);
+      background-color: #fff;
+      box-shadow: 0 0 0 2px rgba(0,122,255,0.15);
+    }
+    
+    /* === Gráficos === */
+    .chart-container { margin-top: 10px; position: relative; height: 320px; width: 100%; }
+    
+    /* === Relatórios Textuais === */
+    .text-report-container ul { list-style: none; padding-left: 0; margin: 0; font-size: 0.95em; }
+    .text-report-container li {
+      margin-bottom: 8px; color: var(--text-muted); padding-left: 18px; position: relative; line-height: 1.4;
+    }
+    .text-report-container li::before {
+      content: "›";
+      position: absolute;
+      left: 0;
+      color: var(--primary-color);
+      font-weight: bold;
+      top: 1px;
+    }
+    .text-report-container strong { font-weight: 600; color: var(--text-color); }
+    .old-sector { font-style: italic; }
+    .new-sector { font-weight: 500; }
+    
+    /* === MODAL DE DETALHE DO COLABORADOR (NOVA VERSÃO) === */
+    /* Agora a tela de colaborador aparecerá em um modal em tela cheia com um container centralizado */
+    #collaborator-detail-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #collaborator-detail-panel.visible { display: flex; }
+    /* Container central que guarda o conteúdo do colaborador */
+    #collaborator-detail-container {
+      background-color: #ffffff;
+      width: 90%;
+      max-width: 1200px;
+      max-height: 90%;
+      overflow-y: auto;
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .panel-header {
+      padding: 10px 20px;
+      height: var(--header-height);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--table-header-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .panel-header h3 {
+      margin: 0;
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    .panel-close-btn {
+      background: none;
+      border: none;
+      font-size: 1.8em;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 0 5px;
+      line-height: 1;
+    }
+    .panel-close-btn:hover { color: var(--text-color); }
+    .panel-content { padding: 20px 25px; }
+    .panel-content .content-card { padding: 15px 20px; }
+    .panel-content .content-card h4 { font-size: 1em; margin-bottom: 12px; }
+    .panel-footer {
+      padding: 10px 20px;
+      border-top: 1px solid var(--border-color);
+      text-align: right;
+      background-color: var(--table-header-bg);
+    }
+    .panel-footer button { padding: 7px 14px; font-size: 0.9em; }
+    
+    /* === Overlay de Loading === */
+    #loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(240,242,245,0.7);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      z-index: 1100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+    }
+    .loading-spinner {
+      width: 45px;
+      height: 45px;
+      border: 4px solid var(--primary-hover);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    #loading-overlay span {
+      font-weight: 500;
+      font-size: 1.1em;
+      color: var(--text-color);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    /* === Botões Gerais === */
+    button {
+      background-color: var(--primary-color);
+      color: var(--button-text-color);
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 0.9em;
+      font-weight: 500;
+      transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+      margin-right: 8px;
+      line-height: 1.4;
+    }
+    button:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { background-color: #b0cfff; cursor: not-allowed; transform: none; opacity: 0.7; }
+    button.remove-btn { background-color: #e4e6eb; color: var(--danger-color); padding: 4px 8px; font-size: 0.8em; }
+    button.remove-btn:hover { background-color: #fbe4e5; color: var(--danger-color); }
+    button.csv-btn { background-color: #eef7f0; color: var(--success-color); padding: 5px 10px; font-size: 0.8em; margin-left: 10px; vertical-align: middle; }
+    button.csv-btn:hover { background-color: #d8f0dd; }
+    button#exportPdfBtn { background-color: #e4e6eb; color: var(--text-color); }
+    button#exportPdfBtn:hover { background-color: #d8dadc; }
+    button#exportCollabPdfBtn { background-color: var(--primary-color); }
+    
+    /* === Responsividade === */
+    @media (max-width:1024px) {
+      :root { --sidebar-width:240px; }
+      .content-header { padding: 0 20px; }
+      .content-body { padding: 20px; }
+    }
+    @media (max-width:768px) {
+      .dashboard-container { flex-direction: column; height: auto; min-height: 100vh; }
+      #sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 35vh;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: none;
+        order: 1;
+        padding: 10px;
+      }
+      .sidebar-header { padding-bottom: 8px; margin-bottom: 10px; }
+      #sidebar h2 { font-size: 1em; }
+      .sidebar-content { margin-right: -10px; padding-right: 10px; }
+      #sector-overview-list li { padding: 8px 10px; font-size: 0.85em; }
+      #main-content { order: 2; height: auto; }
+      .content-header { height: auto; padding: 12px 15px; flex-direction: column; align-items: flex-start; gap: 8px; }
+      .content-header h2 { font-size: 1.15em; }
+      .content-header #exportPdfBtn { width: 100%; text-align: center; }
+      .content-body { padding: 15px; }
+      .tabs { padding: 0 15px; }
+      .tab-link { padding: 10px 12px; font-size: 0.9em; }
+      .content-card { padding: 15px 18px; }
+      .content-card h4 { font-size: 1em; }
+      table { font-size: 0.85em; }
+      th, td { padding: 7px 10px; }
+      .chart-container { height: 280px; }
+      /* O modal de colaborador ocupará 95% da largura em telas pequenas */
+      #collaborator-detail-container { width: 95%; }
+    }
+    @media (max-width:480px) {
+      :root { --border-radius: 6px; }
+      .content-body { padding: 10px; }
+      .content-card { padding: 12px 15px; }
+      .tab-link { padding: 8px 10px; font-size: 0.85em; }
+      button { padding: 7px 12px; font-size: 0.85em; }
+      #setup-card input[type="text"], #setup-card input[type="file"] { padding: 8px 10px; font-size: 0.85em; }
+      table { font-size: 0.8em; }
+      th, td { padding: 6px 8px; }
+    }
+    
+    /* === Estilos Toastify === */
+    .toastify {
+      padding: 12px 20px;
+      color: #fff;
+      display: inline-block;
+      box-shadow: 0 3px 6px -1px rgba(0,0,0,.12),
+                  0 10px 36px -4px rgba(77,96,232,.3);
+      background: linear-gradient(135deg, #73a5ff, #5477f5);
+      position: fixed;
+      opacity: 0;
+      transition: all .4s cubic-bezier(.215,.61,.355,1);
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      text-decoration: none;
+      max-width: calc(50% - 20px);
+      z-index: 2000;
+    }
+    .toastify.on { opacity: 1; }
+    .toast-close { background: none; border: 0; color: #fff; cursor: pointer; font-size: 1.2em; line-height: 1; padding: 0 5px; opacity: .8; }
+    .toastify-right { right: 15px; }
+    .toastify-left { left: 15px; }
+    .toastify-top { top: -150px; }
+    .toastify-bottom { bottom: -150px; }
+    .toastify-rounded { border-radius: 25px; }
+    .toastify-avatar { width: 1.5em; height: 1.5em; margin: -7px 5px; border-radius: 2px; }
+    .toastify-center { margin-left: auto; margin-right: auto; left: 0; right: 0; max-width: fit-content; }
+    @media only screen and (max-width:360px) {
+      .toastify-right, .toastify-left { margin-left: auto; margin-right: auto; left: 0; right: 0; max-width: fit-content; }
+    }
+    .toastify.toast-info { background: linear-gradient(to right, var(--info-color), #60a5fa); }
+    .toastify.toast-success { background: linear-gradient(to right, var(--success-color), #34d399); }
+    .toastify.toast-warning { background: linear-gradient(to right, var(--warning-color), #fbbf24); }
+    .toastify.toast-error { background: linear-gradient(to right, var(--danger-color), #f87171); }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+
+    <!-- ==== Barra Lateral ==== -->
+    <aside id="sidebar" style="display: none;">
+      <div class="sidebar-header">
+        <h2>Setores</h2>
+      </div>
+      <div class="sidebar-content">
+        <div id="sector-overview-list-container">
+          <p id="sidebar-placeholder" style="color: var(--text-muted); font-style: italic; font-size: 0.9em; text-align: center;">Realize uma análise para listar os setores.</p>
+          <ul id="sector-overview-list"></ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==== Conteúdo Principal ==== -->
+    <main id="main-content">
+      <div class="content-header">
+        <h2 id="content-title">Configuração da Análise</h2>
+        <button type="button" id="exportPdfBtn" style="display: none;" disabled>Exportar Aba (PDF)</button>
+      </div>
+      <div class="content-body">
+        <div class="content-wrapper">
+          <!-- Configuração Inicial -->
+          <div id="setup-container">
+            <div id="setup-card">
+              <h3>1. Selecione os Arquivos JSON</h3>
+              <input type="file" id="jsonFiles" accept=".json,application/json" multiple>
+              <h3>2. Descreva os Períodos</h3>
+              <ul id="file-list"></ul>
+              <button type="button" id="analyzeBtn" disabled>Analisar Períodos</button>
+            </div>
+          </div>
+          <!-- Resultados com Abas -->
+          <div id="results-container" style="display: none;">
+            <nav class="tabs">
+              <button class="tab-link" data-tab="tab-overall">Resumo Geral</button>
+              <button class="tab-link" data-tab="tab-notifications">Notificações</button>
+              <button class="tab-link" data-tab="tab-comparison">Comparativo Setor</button>
+              <button class="tab-link" data-tab="tab-chart">Gráfico Setor</button>
+              <button class="tab-link" data-tab="tab-collaborators">Colaboradores</button>
+              <button class="tab-link" data-tab="tab-analysis">Análise Setor</button>
+              <button class="tab-link" data-tab="tab-topn">Top N Setor</button>
+            </nav>
+            <div class="tab-panels">
+              <div id="sector-select-placeholder" class="content-card" style="text-align: center; padding: 40px 20px; display: none;">
+                <p style="font-size: 1.1em; color: var(--text-muted);">Selecione um setor na barra lateral esquerda para visualizar seus detalhes específicos.</p>
+              </div>
+              <div id="tab-overall" class="tab-panel">
+                <div class="content-card">
+                  <h4>Resumo Consolidado (Todos os Setores)</h4>
+                  <div id="overall-summary-table"></div>
+                </div>
+                <div class="content-card">
+                  <h4>Relatório Geral Consolidado</h4>
+                  <div id="text-report" class="text-report-container"></div>
+                </div>
+              </div>
+              <div id="tab-notifications" class="tab-panel">
+                <div class="content-card">
+                  <h4>Notificações de Mudança de Setor</h4>
+                  <div id="sector-change-report" class="text-report-container">
+                    <p>Nenhuma mudança detectada ou análise não realizada.</p>
+                  </div>
+                </div>
+              </div>
+              <div id="tab-comparison" class="tab-panel">
+                <div id="sector-comp-table-content"></div>
+              </div>
+              <div id="tab-chart" class="tab-panel">
+                <div class="content-card">
+                  <h4>Gráfico Comparativo (Total HE por Período)</h4>
+                  <div id="sector-chart-content"></div>
+                </div>
+              </div>
+              <div id="tab-collaborators" class="tab-panel">
+                <div class="content-card">
+                  <div id="sector-collab-table-content"></div>
+                </div>
+              </div>
+              <div id="tab-analysis" class="tab-panel">
+                <div class="content-card">
+                  <h4>Resumo da Análise do Setor</h4>
+                  <div id="sector-text-report-content" class="text-report-container"></div>
+                </div>
+              </div>
+              <div id="tab-topn" class="tab-panel">
+                <div class="content-card">
+                  <h4>Análise Top Colaboradores (Maiores Variações)</h4>
+                  <div id="sector-topn-content" class="text-report-container"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==== Modal de Detalhes do Colaborador ==== -->
+    <div id="collaborator-detail-panel">
+      <div id="collaborator-detail-container">
+        <div class="panel-header">
+          <h3 id="collab-panel-title">Detalhes do Colaborador</h3>
+          <button type="button" class="panel-close-btn" onclick="closeCollaboratorPanel()" title="Fechar Painel">×</button>
+        </div>
+        <div class="panel-content" id="collab-panel-content">
+          <!-- Conteúdo injetado via JS -->
+        </div>
+        <div class="panel-footer">
+          <button type="button" id="exportCollabPdfBtn" disabled>Exportar PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==== Overlay de Loading ==== -->
+    <div id="loading-overlay">
+      <div class="loading-spinner"></div>
+      <span id="loading-text">Analisando...</span>
+    </div>
+  </div>
+
+  <script>
+    // === DOM Elements ===
+    const dashboardContainer = document.querySelector('.dashboard-container');
+    const setupContainer = document.getElementById('setup-container');
+    const jsonFilesInput = document.getElementById('jsonFiles');
+    const fileListUl = document.getElementById('file-list');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+    const sectorOverviewListUl = document.getElementById('sector-overview-list');
+    const mainContent = document.getElementById('main-content');
+    const contentHeader = document.querySelector('.content-header');
+    const contentTitle = document.getElementById('content-title');
+    const contentBody = document.querySelector('.content-body');
+    const resultsContainer = document.getElementById('results-container');
+    const sectorSelectPlaceholder = document.getElementById('sector-select-placeholder');
+    const tabsContainer = document.querySelector('.tabs');
+    const tabPanelsContainer = document.querySelector('.tab-panels');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+
+    const overallSummaryTableDiv = document.getElementById('overall-summary-table');
+    const textReportDiv = document.getElementById('text-report');
+    const sectorChangeReportDiv = document.getElementById('sector-change-report');
+    const sectorCompTableContentDiv = document.getElementById('sector-comp-table-content');
+    const sectorChartContentDiv = document.getElementById('sector-chart-content');
+    const sectorCollabTableContentDiv = document.getElementById('sector-collab-table-content');
+    const sectorTextReportContentDiv = document.getElementById('sector-text-report-content');
+    const sectorTopNContentDiv = document.getElementById('sector-topn-content');
+
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingTextSpan = document.getElementById('loading-text');
+    // Modificado para usar o novo container do modal:
+    const collaboratorDetailPanel = document.getElementById('collaborator-detail-panel');
+    const collabPanelTitle = document.getElementById('collab-panel-title');
+    const collabPanelContent = document.getElementById('collab-panel-content');
+    const exportCollabPdfBtn = document.getElementById('exportCollabPdfBtn');
+
+    // === State Variables ===
+    let uploadedFilesData = [];
+    let processedPeriodData = {};
+    let collaboratorSectorChartInstance = null;
+    let collaboratorDetailChartInstance = null;
+    let currentSelectedSector = null;
+    let currentSelectedMatricula = null;
+    let sectorChangeNotifications = [];
+    let currentActiveTab = 'tab-overall';
+
+    const HOUR_TYPES = ['anti', 'por', 'extra75', 'extra80', 'extra100'];
+    const HOUR_TYPE_DISPLAY_NAMES = { anti: 'Anti', por: 'Pós', extra75: 'Extra 75%', extra80: 'Extra 80%', extra100: 'Extra 100%' };
+    const HE_TYPES_FOR_TOTAL = ['anti', 'por', 'extra75', 'extra80', 'extra100'];
+    const SECTOR_SPECIFIC_TABS = ['tab-comparison', 'tab-chart', 'tab-collaborators', 'tab-analysis', 'tab-topn'];
+
+    // === Toast Helper ===
+    function showToast(message, type = 'info', duration = 3000) {
+      let className = `toast-${type}`;
+      Toastify({ text: message, duration: duration, close: true, gravity: "top", position: "right", stopOnFocus: true, className: className }).showToast();
+    }
+
+    // === Event Listeners ===
+    document.addEventListener('DOMContentLoaded', initializeUI);
+    jsonFilesInput.addEventListener('change', handleFileSelect);
+    analyzeBtn.addEventListener('click', analyzeFiles);
+    sidebar.addEventListener('click', handleSidebarClick);
+    tabsContainer.addEventListener('click', handleTabClick);
+    exportPdfBtn.addEventListener('click', () => exportResultsToPdf('sector'));
+    exportCollabPdfBtn.addEventListener('click', () => exportResultsToPdf('collaborator'));
+
+    // === Initialization ===
+    function initializeUI() {
+      setupContainer.style.display = 'block';
+      resultsContainer.style.display = 'none';
+      sidebar.style.display = 'none';
+      contentTitle.textContent = "Configuração da Análise";
+      exportPdfBtn.style.display = 'none';
+      exportCollabPdfBtn.disabled = true;
+      updateAnalyzeButtonState();
+    }
+
+    // === File Handling ===
+    function handleFileSelect(event) {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+      for (const file of files) {
+        const isDuplicate = uploadedFilesData.some(existing => existing.file.name === file.name && existing.file.size === file.size);
+        if (isDuplicate) { showToast(`Arquivo "${file.name}" já adicionado.`, 'warning'); continue; }
+        const isLikelyJson = file.name.toLowerCase().endsWith('.json') || file.type === 'application/json';
+        if (!isLikelyJson) console.warn(`Arquivo "${file.name}" pode não ser JSON.`);
+        addFileToList(file);
+      }
+      updateAnalyzeButtonState();
+    }
+    function addFileToList(file) {
+      const fileId = `file-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const fileData = { file: file, description: "", id: fileId };
+      uploadedFilesData.push(fileData);
+      const li = document.createElement('li');
+      li.id = fileId;
+      li.className = 'file-list-item';
+      const fileInfoDiv = document.createElement('div');
+      fileInfoDiv.className = 'file-info';
+      const fileNameSpan = document.createElement('span');
+      fileNameSpan.className = 'file-name';
+      fileNameSpan.textContent = file.name;
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.textContent = 'Remover';
+      removeBtn.type = 'button';
+      removeBtn.onclick = () => removeFile(fileId);
+      fileInfoDiv.appendChild(fileNameSpan);
+      fileInfoDiv.appendChild(removeBtn);
+      const descriptionInput = document.createElement('input');
+      descriptionInput.type = 'text';
+      descriptionInput.placeholder = 'Descreva o período (ex: 21/03 a 07/04)';
+      descriptionInput.setAttribute('aria-label', `Descrição para ${file.name}`);
+      descriptionInput.classList.add('input-invalid');
+      descriptionInput.oninput = (event) => {
+        const fileEntry = uploadedFilesData.find(f => f.id === fileId);
+        const value = event.target.value.trim();
+        if (fileEntry) fileEntry.description = value;
+        event.target.classList.toggle('input-invalid', !value);
+        updateAnalyzeButtonState();
+      };
+      li.appendChild(fileInfoDiv);
+      li.appendChild(descriptionInput);
+      fileListUl.appendChild(li);
+    }
+    function removeFile(fileId) {
+      uploadedFilesData = uploadedFilesData.filter(f => f.id !== fileId);
+      const liToRemove = document.getElementById(fileId);
+      if (liToRemove) liToRemove.remove();
+      updateAnalyzeButtonState();
+    }
+    function updateAnalyzeButtonState() {
+      const canAnalyze = uploadedFilesData.length > 0 && uploadedFilesData.every(f => f.description && f.description.length > 0);
+      analyzeBtn.disabled = !canAnalyze;
+      uploadedFilesData.forEach(f => {
+        const input = document.querySelector(`#${f.id} input[type="text"]`);
+        if (input) input.classList.toggle('input-invalid', !f.description);
+      });
+    }
+
+    // === Clear / Reset Interface ===
+    function clearResultsInterface() {
+      resultsContainer.style.display = 'none';
+      sidebar.style.display = 'none';
+      sectorOverviewListUl.innerHTML = '';
+      sidebarPlaceholder.style.display = 'block';
+      contentTitle.textContent = "Configuração da Análise";
+      exportPdfBtn.style.display = 'none';
+      exportPdfBtn.disabled = true;
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+        const compDiv = panel.querySelector('#sector-comp-table-content');
+        if(compDiv) compDiv.innerHTML = '';
+        const chartDiv = panel.querySelector('#sector-chart-content');
+        if(chartDiv) chartDiv.innerHTML = '';
+        const collabDiv = panel.querySelector('#sector-collab-table-content');
+        if(collabDiv) collabDiv.innerHTML = '';
+        const textDiv = panel.querySelector('#sector-text-report-content');
+        if(textDiv) textDiv.innerHTML = '';
+        const topnDiv = panel.querySelector('#sector-topn-content');
+        if(topnDiv) topnDiv.innerHTML = '';
+        if (panel.id === 'tab-overall') { overallSummaryTableDiv.innerHTML = ''; textReportDiv.innerHTML = ''; }
+        else if (panel.id === 'tab-notifications') { sectorChangeReportDiv.innerHTML = '<p>Nenhuma análise realizada.</p>'; }
+      });
+      document.querySelectorAll('.tab-link.active').forEach(link => link.classList.remove('active'));
+      sectorSelectPlaceholder.style.display = 'none';
+      currentSelectedSector = null;
+      currentActiveTab = 'tab-overall';
+      if (collaboratorSectorChartInstance) { collaboratorSectorChartInstance.destroy(); collaboratorSectorChartInstance = null; }
+      if (collaboratorDetailChartInstance) { collaboratorDetailChartInstance.destroy(); collaboratorDetailChartInstance = null; }
+      closeCollaboratorPanel();
+      setupContainer.style.display = 'block';
+    }
+
+    // === Analysis Logic ===
+    async function analyzeFiles() {
+      if (uploadedFilesData.length < 1 || !uploadedFilesData.every(f => f.description)) {
+        showToast("Adicione arquivos JSON e descreva TODOS os períodos.", "warning");
+        return;
+      }
+      loadingTextSpan.textContent = 'Lendo arquivos...';
+      loadingOverlay.style.display = 'flex';
+      analyzeBtn.disabled = true;
+      exportPdfBtn.disabled = true;
+      exportCollabPdfBtn.disabled = true;
+      processedPeriodData = {};
+      sectorChangeNotifications = [];
+      try {
+        const fileReadPromises = uploadedFilesData.map(fileData =>
+          readFileAsText(fileData.file).then(jsonText => {
+            try {
+              const jsonData = JSON.parse(jsonText);
+              const periodDescription = fileData.description || fileData.file.name;
+              processedPeriodData[periodDescription] = processJsonData(jsonData, periodDescription);
+            } catch (parseError) {
+              throw new Error(`"${fileData.file.name}": JSON inválido. ${parseError.message}`);
+            }
+          }).catch(readError => {
+            throw new Error(`"${fileData.file.name}": Erro leitura. ${readError.message}`);
+          })
+        );
+        await Promise.all(fileReadPromises);
+        if (Object.keys(processedPeriodData).length === 0) {
+          showToast("Nenhum dado válido encontrado.", "error");
+          throw new Error("No valid data processed.");
+        }
+        loadingTextSpan.textContent = 'Processando dados...';
+        const sortedPeriods = sortPeriodsChronologically(Object.keys(processedPeriodData));
+        const sortedProcessedData = {};
+        sortedPeriods.forEach(key => sortedProcessedData[key] = processedPeriodData[key]);
+        processedPeriodData = sortedProcessedData;
+        generateSectorChangeNotifications(processedPeriodData);
+        loadingTextSpan.textContent = 'Gerando visualização...';
+        displayAnalysisDashboard();
+      } catch (error) {
+        console.error("Erro na análise:", error);
+        showToast(`Erro na análise: ${error.message}`, "error", 5000);
+        clearResultsInterface();
+        updateAnalyzeButtonState();
+      } finally {
+        loadingOverlay.style.display = 'none';
+        loadingTextSpan.textContent = 'Analisando...';
+        analyzeBtn.disabled = false;
+      }
+    }
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => resolve(event.target.result);
+        reader.onerror = (errorEvent) => reject(new Error(`Erro ao ler "${file.name}"`));
+        reader.onabort = () => reject(new Error(`Leitura de "${file.name}" abortada.`));
+        try {
+          reader.readAsText(file, 'UTF-8');
+        } catch (e) { reject(new Error(`Erro iniciar leitura "${file.name}": ${e.message}`)); }
+      });
+    }
+    function processJsonData(jsonData, periodKey) {
+      const sectorAgg = {};
+      const collabAgg = {};
+      if (!jsonData || typeof jsonData !== 'object') {
+        console.warn(`[${periodKey}] JSON inesperado.`);
+        return { sectors: {}, collaborators: {} };
+      }
+      if (!jsonData.registros || !Array.isArray(jsonData.registros)) {
+        console.warn(`[${periodKey}] 'registros' ausente/inválido.`);
+        return { sectors: {}, collaborators: {} };
+      }
+      for (const record of jsonData.registros) {
+        if (typeof record !== 'object' || record === null) {
+          console.warn(`[${periodKey}] Registro inválido (não objeto).`);
+          continue;
+        }
+        if (record.setor === null || record.setor === undefined || record.matricula === null || record.matricula === undefined || !record.horas || typeof record.horas !== 'object') {
+          console.warn(`[${periodKey}] Registro pulado (dados essenciais ausentes).`);
+          continue;
+        }
+        if (record.tipo === 'Atestado') continue;
+        const sector = String(record.setor || 'Sem Setor').trim();
+        const matricula = String(record.matricula);
+        const name = String(record.nome || `Matrícula ${matricula}`).trim();
+        const turn = String(record.turno || 'N/A').trim();
+        if (!sectorAgg[sector]) {
+          sectorAgg[sector] = {};
+          HOUR_TYPES.forEach(type => sectorAgg[sector][type] = 0);
+        }
+        if (!collabAgg[matricula]) {
+          collabAgg[matricula] = { name: name, sector: sector, turn: turn, totalHE: 0 };
+          HOUR_TYPES.forEach(type => collabAgg[matricula][type] = 0);
+        } else {
+          collabAgg[matricula].name = name;
+          collabAgg[matricula].sector = sector;
+          collabAgg[matricula].turn = turn;
+        }
+        let currentRecordTotalHE = 0;
+        HOUR_TYPES.forEach(type => {
+          if (record.horas.hasOwnProperty(type)) {
+            const minutes = Number(record.horas[type]);
+            if (!isNaN(minutes) && minutes !== 0) {
+              sectorAgg[sector][type] = (sectorAgg[sector][type] || 0) + minutes;
+              collabAgg[matricula][type] = (collabAgg[matricula][type] || 0) + minutes;
+              if (HE_TYPES_FOR_TOTAL.includes(type)) currentRecordTotalHE += minutes;
+            } else if (record.horas[type] !== null && record.horas[type] !== undefined && record.horas[type] !== 0)
+              console.warn(`[${periodKey}] Valor hora inválido '${type}'.`);
+          }
+        });
+        collabAgg[matricula].totalHE = (collabAgg[matricula].totalHE || 0) + currentRecordTotalHE;
+      }
+      return { sectors: sectorAgg, collaborators: collabAgg };
+    }
+    function generateSectorChangeNotifications(periodData) {
+      sectorChangeNotifications = [];
+      const periods = Object.keys(periodData);
+      if (periods.length < 2) return;
+      const allMatriculas = new Set();
+      periods.forEach(p => {
+        if (periodData[p]?.collaborators)
+          Object.keys(periodData[p].collaborators).forEach(m => allMatriculas.add(m));
+      });
+      allMatriculas.forEach(matricula => {
+        let lastKnownSector = null;
+        let lastKnownPeriod = null;
+        let lastName = null;
+        for (let i = 0; i < periods.length; i++) {
+          const currentPeriod = periods[i];
+          const collabDataCurrent = periodData[currentPeriod]?.collaborators?.[matricula];
+          if (collabDataCurrent) {
+            const currentSector = collabDataCurrent.sector;
+            lastName = collabDataCurrent.name;
+            if (lastKnownSector !== null && currentSector !== lastKnownSector)
+              sectorChangeNotifications.push({ matricula: matricula, name: lastName, oldSector: lastKnownSector, newSector: currentSector, periodChange: `${lastKnownPeriod} -> ${currentPeriod}` });
+            lastKnownSector = currentSector;
+            lastKnownPeriod = currentPeriod;
+          }
+        }
+      });
+      sectorChangeNotifications.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    }
+    function formatMinutesToHHMM(totalMinutes) {
+      if (isNaN(totalMinutes) || totalMinutes === null || totalMinutes === undefined) return "00:00";
+      if(totalMinutes === 0) return "00:00";
+      const sign = totalMinutes < 0 ? "-" : "";
+      totalMinutes = Math.abs(totalMinutes);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = Math.round(totalMinutes % 60);
+      if (minutes === 60) return `${sign}${String(hours + 1).padStart(2, '0')}:00`;
+      return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+    function calculateDiff(valA, valB) {
+      valA = Number(valA ?? 0);
+      valB = Number(valB ?? 0);
+      if (isNaN(valA)) valA = 0;
+      if (isNaN(valB)) valB = 0;
+      const diff = valB - valA;
+      let percent = 0;
+      if (valA !== 0) percent = (diff / Math.abs(valA)) * 100;
+      else if (valB !== 0) percent = Infinity;
+      return { diff, percent };
+    }
+    function getDiffClass(diff) {
+      if (isNaN(diff) || typeof diff !== 'number') return 'diff-zero';
+      if (diff > 0) return 'diff-pos';
+      if (diff < 0) return 'diff-neg';
+      return 'diff-zero';
+    }
+    function formatDiffValue(diff) {
+      if (isNaN(diff)) return "N/A";
+      return `${diff >= 0 ? '+' : ''}${formatMinutesToHHMM(diff)}`;
+    }
+    function formatPercentValue(percent, valB) {
+      if (isNaN(percent)) return "N/A";
+      if (!isFinite(percent)) return (valB > 0) ? '+Inf%' : (valB < 0 ? '-Inf%' : '0%');
+      return `${percent >= 0 ? '+' : ''}${percent.toFixed(1)}%`;
+    }
+    function calculateSectorTotalHE(sectorData) {
+      let total = 0;
+      if(sectorData && typeof sectorData === 'object')
+        HE_TYPES_FOR_TOTAL.forEach(type => {
+          const val = Number(sectorData[type] ?? 0);
+          if (!isNaN(val)) total += val;
+        });
+      return total;
+    }
+    function calculateCollaboratorTotalHE(collabData) {
+      let total = 0;
+      if (collabData && typeof collabData === 'object')
+        HE_TYPES_FOR_TOTAL.forEach(type => {
+          const val = Number(collabData[type] ?? 0);
+          if (!isNaN(val)) total += val;
+        });
+      return total;
+    }
+    function formatMinutesVerbose(minutes) {
+      if (isNaN(minutes) || minutes === 0) return "sem mudança";
+      const absMinutes = Math.abs(minutes);
+      const hours = Math.floor(absMinutes / 60);
+      const mins = Math.round(absMinutes % 60);
+      let text = "";
+      if (hours > 0) text += `${hours}h`;
+      if (mins > 0) text += `${hours > 0 ? ' ' : ''}${mins}min`;
+      const changeWord = minutes > 0 ? "aumento" : "redução";
+      return `${changeWord} de ${text.trim()}`;
+    }
+    function sortPeriodsChronologically(periods) {
+      const getDateFromDesc = (desc) => {
+        const match = desc.match(/^(\d{1,2})[./](\d{1,2})/);
+        if (match) return new Date(2000, parseInt(match[2]) - 1, parseInt(match[1]));
+        const matchISO = desc.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (matchISO) return new Date(parseInt(matchISO[1]), parseInt(matchISO[2]) - 1, parseInt(matchISO[3]));
+        const matchMY = desc.match(/^(\d{1,2})\/(\d{4})/);
+        if (matchMY) return new Date(parseInt(matchMY[2]), parseInt(matchMY[1]) - 1, 1);
+        return null;
+      };
+      return periods.sort((a, b) => {
+        const dateA = getDateFromDesc(a);
+        const dateB = getDateFromDesc(b);
+        if (dateA && dateB) return dateA - dateB;
+        if (dateA) return -1;
+        if (dateB) return 1;
+        return a.localeCompare(b, 'pt-BR');
+      });
+    }
+    function parseHHMMToMinutes(hhmm) {
+      if (typeof hhmm !== 'string' || !hhmm.match(/^[-+]?\d{1,}:\d{2}$/)) {
+        const num = Number(hhmm);
+        if (!isNaN(num)) return num;
+        return NaN;
+      }
+      const sign = hhmm.startsWith('-') ? -1 : 1;
+      const parts = hhmm.replace(/[-+]/, '').split(':');
+      const hours = parseInt(parts[0], 10);
+      const minutes = parseInt(parts[1], 10);
+      if (isNaN(hours) || isNaN(minutes)) return NaN;
+      return sign * (hours * 60 + minutes);
+    }
+
+    function makeTableSortable(tableId) {
+      const table = document.getElementById(tableId);
+      if (!table) return;
+      const thead = table.querySelector('thead');
+      if(!thead) return;
+      const headers = thead.querySelectorAll('th.sortable');
+      let currentSort = { column: -1, asc: true };
+      headers.forEach((header) => header.replaceWith(header.cloneNode(true)) );
+      const newHeaders = thead.querySelectorAll('th.sortable');
+      newHeaders.forEach((header) => {
+        header.addEventListener('click', () => {
+          const columnToSort = header.cellIndex;
+          const isAsc = (currentSort.column === columnToSort) ? !currentSort.asc : true;
+          sortTable(table, columnToSort, isAsc);
+          currentSort = { column: columnToSort, asc: isAsc };
+          newHeaders.forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
+          header.classList.toggle('sort-asc', isAsc);
+          header.classList.toggle('sort-desc', !isAsc);
+        });
+      });
+    }
+    function sortTable(table, column, asc = true) {
+      const tbody = table.querySelector('tbody');
+      if (!tbody) return;
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const collaboratorRows = [];
+      let currentRowBlock = [];
+      rows.forEach(row => {
+        const isHeaderRow = row.querySelector('td.collab-name');
+        if (isHeaderRow && currentRowBlock.length > 0) {
+          collaboratorRows.push(currentRowBlock);
+          currentRowBlock = [row];
+        } else if (isHeaderRow) {
+          currentRowBlock = [row];
+        } else if (currentRowBlock.length > 0){
+          currentRowBlock.push(row);
+        }
+      });
+      if (currentRowBlock.length > 0) {
+        collaboratorRows.push(currentRowBlock);
+      }
+      const firstDataCell = collaboratorRows[0]?.[0]?.cells[column];
+      const isNumeric = firstDataCell && !isNaN(parseHHMMToMinutes(firstDataCell.textContent.trim()));
+      const isNameCol = firstDataCell?.classList.contains('collab-name');
+      collaboratorRows.sort((blockA, blockB) => {
+        const cellA = blockA[0].cells[column];
+        const cellB = blockB[0].cells[column];
+        if (!cellA || !cellB) return 0;
+        let valA = cellA.textContent.trim();
+        let valB = cellB.textContent.trim();
+        if (isNameCol) {
+          valA = valA.replace(/\s*\(\s*\d+\s*\)$/, '').trim();
+          valB = valB.replace(/\s*\(\s*\d+\s*\)$/, '').trim();
+          return valA.localeCompare(valB, 'pt-BR', { sensitivity: 'base' }) * (asc ? 1 : -1);
+        } else if (isNumeric) {
+          valA = parseHHMMToMinutes(valA);
+          valB = parseHHMMToMinutes(valB);
+          valA = isNaN(valA) ? (asc ? Infinity : -Infinity) : valA;
+          valB = isNaN(valB) ? (asc ? Infinity : -Infinity) : valB;
+          return (valA - valB) * (asc ? 1 : -1);
+        } else {
+          return valA.localeCompare(valB, 'pt-BR', { sensitivity: 'base' }) * (asc ? 1 : -1);
+        }
+      });
+      tbody.innerHTML = '';
+      collaboratorRows.forEach(block => block.forEach(row => tbody.appendChild(row)) );
+    }
+    function addTableFilter(inputId, tableId) {
+      const input = document.getElementById(inputId);
+      const table = document.getElementById(tableId);
+      if (!input || !table) return;
+      const tbody = table.querySelector('tbody');
+      if (!tbody) return;
+      input.addEventListener('input', () => {
+        const filterText = input.value.toLowerCase().trim();
+        const rows = tbody.querySelectorAll('tr');
+        let currentBlockVisible = false;
+        let rowBlock = [];
+        rows.forEach(row => {
+          const isHeaderRow = row.querySelector('td.collab-name');
+          if (isHeaderRow) {
+            if (rowBlock.length > 0) rowBlock.forEach(r => r.style.display = currentBlockVisible ? '' : 'none');
+            rowBlock = [row];
+            const rowText = isHeaderRow.textContent.toLowerCase();
+            currentBlockVisible = rowText.includes(filterText);
+          } else if (rowBlock.length > 0) {
+            rowBlock.push(row);
+          }
+        });
+        if (rowBlock.length > 0) rowBlock.forEach(r => r.style.display = currentBlockVisible ? '' : 'none');
+      });
+    }
+    
+    // === Display da Análise ===
+    function displayAnalysisDashboard() {
+      const periods = Object.keys(processedPeriodData);
+      if (periods.length === 0) return;
+      setupContainer.style.display = 'none';
+      resultsContainer.style.display = 'flex';
+      sidebar.style.display = 'flex';
+      populateSectorOverviewList(processedPeriodData);
+      overallSummaryTableDiv.innerHTML = generateOverallSummaryTableHTML(processedPeriodData);
+      textReportDiv.innerHTML = generateTextualReportHTML_General(processedPeriodData);
+      if (sectorChangeNotifications.length > 0) {
+        let notificationHTML = '<ul>';
+        sectorChangeNotifications.forEach(notif => {
+          notificationHTML += `<li><strong>${notif.name}</strong> (Mat: ${notif.matricula}): mudou de <span class="old-sector">${notif.oldSector}</span> para <span class="new-sector">${notif.newSector}</span> entre ${notif.periodChange}.</li>`;
+        });
+        notificationHTML += '</ul>';
+        sectorChangeReportDiv.innerHTML = notificationHTML;
+      } else {
+        sectorChangeReportDiv.innerHTML = '<p>Nenhuma mudança de setor detectada.</p>';
+      }
+      currentSelectedSector = null;
+      document.querySelectorAll('#sector-overview-list li.selected').forEach(li => li.classList.remove('selected'));
+      contentTitle.textContent = "Resumo Geral";
+      exportPdfBtn.style.display = 'none';
+      exportPdfBtn.disabled = true;
+      sectorSelectPlaceholder.style.display = 'block';
+      switchTab('tab-overall', true);
+      showToast("Análise concluída! Veja o Resumo Geral ou selecione um setor.", "success");
+    }
+    function populateSectorOverviewList(periodData) {
+      sectorOverviewListUl.innerHTML = '';
+      const periods = Object.keys(processedPeriodData);
+      if (periods.length === 0) { sidebarPlaceholder.style.display = 'block'; return; }
+      sidebarPlaceholder.style.display = 'none';
+      const firstPeriodKey = periods[0];
+      const sectorsFirstPeriod = processedPeriodData[firstPeriodKey]?.sectors ?? {};
+      const allSectors = new Set();
+      periods.forEach(p => {
+        if (processedPeriodData[p]?.sectors)
+          Object.keys(processedPeriodData[p].sectors).forEach(s => allSectors.add(s || 'Sem Setor'));
+      });
+      const sortedSectors = Array.from(allSectors).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+      sortedSectors.forEach(sectorName => {
+        const sectorDataFirstPeriod = sectorsFirstPeriod[sectorName];
+        const totalHEFirstPeriod = calculateSectorTotalHE(sectorDataFirstPeriod);
+        const li = document.createElement('li');
+        li.dataset.sector = sectorName;
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'sector-name';
+        nameSpan.textContent = sectorName;
+        const totalSpan = document.createElement('span');
+        totalSpan.className = 'sector-total';
+        totalSpan.textContent = `${formatMinutesToHHMM(totalHEFirstPeriod)}`;
+        li.appendChild(nameSpan);
+        li.appendChild(totalSpan);
+        sectorOverviewListUl.appendChild(li);
+      });
+    }
+    function handleSidebarClick(event) {
+      const targetLi = event.target.closest('li');
+      if (targetLi && targetLi.dataset.sector) {
+        if (Object.keys(processedPeriodData).length > 0) {
+          selectSector(targetLi.dataset.sector);
+        } else {
+          showToast("Aguarde a análise ser concluída antes de selecionar um setor.", "warning");
+        }
+      }
+    }
+    function selectSector(sectorName) {
+      if (!processedPeriodData || Object.keys(processedPeriodData).length === 0) {
+        console.error("Tentativa de selecionar setor sem dados processados.");
+        showToast("Erro interno: Dados da análise não encontrados.", "error");
+        return;
+      }
+      if (currentSelectedSector === sectorName) return;
+      currentSelectedSector = sectorName;
+      document.querySelectorAll('#sector-overview-list li.selected').forEach(li => li.classList.remove('selected'));
+      const selectedLi = sectorOverviewListUl.querySelector(`li[data-sector="${CSS.escape(sectorName)}"]`);
+      if (selectedLi) selectedLi.classList.add('selected');
+      else console.warn(`Elemento <li> para setor ${sectorName} não encontrado na sidebar.`);
+      contentTitle.textContent = `Setor: ${sectorName}`;
+      sectorSelectPlaceholder.style.display = 'none';
+      exportPdfBtn.style.display = 'inline-block';
+      exportPdfBtn.disabled = false;
+      clearSectorTabContent();
+      try {
+        generateSectorDetailsContent(sectorName, processedPeriodData);
+        switchTab('tab-comparison', true);
+      } catch(error) {
+        console.error(`Erro ao gerar conteúdo para ${sectorName}:`, error);
+        showToast(`Erro ao carregar detalhes para ${sectorName}.`, "error");
+        clearSectorTabContent('<p style="color:red; text-align: center;">Erro ao carregar dados deste setor.</p>');
+        exportPdfBtn.disabled = true;
+      }
+    }
+    function clearSectorTabContent(message = 'Carregando...') {
+      sectorCompTableContentDiv.innerHTML = message;
+      sectorChartContentDiv.innerHTML = message;
+      sectorCollabTableContentDiv.innerHTML = message;
+      sectorTextReportContentDiv.innerHTML = message;
+      sectorTopNContentDiv.innerHTML = message;
+      if (collaboratorSectorChartInstance) {
+        collaboratorSectorChartInstance.destroy();
+        collaboratorSectorChartInstance = null;
+      }
+    }
+    function generateSectorDetailsContent(sectorName, periodData) {
+      const safeSectorName = sectorName.replace(/[^a-zA-Z0-9_-]/g, '');
+      const filterInputId = `filter-${safeSectorName}`;
+      const collabTableId = `collab-table-${safeSectorName}`;
+      const chartCanvasId = `chart-${safeSectorName}`;
+      
+      // Aba Comparativo
+      sectorCompTableContentDiv.innerHTML = generateSectorComparisonTableHTML(periodData, sectorName);
+      // Aba Gráfico
+      sectorChartContentDiv.innerHTML = createSectorChartCanvas(chartCanvasId);
+      requestAnimationFrame(() => renderSectorChart_Single(sectorName, periodData, chartCanvasId));
+      // Aba Colaboradores – aqui usamos JSON.stringify para passar o setor sem problemas de escape
+      let collabFilterHtml = `<div class="filter-container"><label for="${filterInputId}">Filtrar Colaboradores:</label><input type="text" id="${filterInputId}" class="filter-input" placeholder="Digite nome ou matrícula..."></div>`;
+      let collabTableHtml = generateCollaboratorTableHTML_Sector(sectorName, periodData, collabTableId);
+      sectorCollabTableContentDiv.innerHTML = `<div class="content-card"><h4>Colaboradores do Setor <button type="button" class="csv-btn" onclick="generateAndExportSectorCollabCsv(${JSON.stringify(sectorName)})">Exportar (CSV)</button></h4>${collabFilterHtml}${collabTableHtml}</div>`;
+      setTimeout(() => {
+        makeTableSortable(collabTableId);
+        addTableFilter(filterInputId, collabTableId);
+        sectorCollabTableContentDiv.querySelectorAll(`#${collabTableId} td.collab-name`).forEach(td => {
+          const matricula = td.dataset.matricula;
+          const name = td.dataset.name;
+          if (matricula && name) {
+            td.onclick = () => displayCollaboratorDetails(matricula, name, sectorName, periodData);
+          } else {
+            console.warn("TD .collab-name sem data-matricula ou data-name:", td);
+          }
+        });
+      }, 150);
+      // Aba Análise Textual
+      sectorTextReportContentDiv.innerHTML = `<div class="content-card"><h4>Resumo da Análise do Setor</h4><div class="text-report-container">${generateTextualReportHTML_Sector(sectorName, periodData)}</div></div>`;
+      // Aba Top N
+      sectorTopNContentDiv.innerHTML = `<div class="content-card"><h4>Análise Top Colaboradores (Maiores Variações)</h4><div class="text-report-container">${generateTopNCollaboratorHTML(sectorName, periodData)}</div></div>`;
+    }
+    function handleTabClick(event) {
+      const targetLink = event.target.closest('.tab-link');
+      if (targetLink) {
+        const tabId = targetLink.dataset.tab;
+        if (SECTOR_SPECIFIC_TABS.includes(tabId) && !currentSelectedSector) {
+          showToast("Selecione um setor na lista primeiro.", "warning");
+          return;
+        }
+        if (tabId && tabId !== currentActiveTab) {
+          switchTab(tabId);
+        }
+      }
+    }
+    function switchTab(tabId, forceActivation = false) {
+      if (!forceActivation && currentActiveTab === tabId) return;
+      if (!forceActivation && SECTOR_SPECIFIC_TABS.includes(tabId) && !currentSelectedSector) {
+        console.warn(`Tentativa de ativar aba de setor (${tabId}) sem setor selecionado.`);
+        return;
+      }
+      currentActiveTab = tabId;
+      tabsContainer.querySelectorAll('.tab-link').forEach(link => {
+        link.classList.toggle('active', link.dataset.tab === tabId);
+      });
+      tabPanelsContainer.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === tabId);
+      });
+      const activeLink = tabsContainer.querySelector(`.tab-link[data-tab="${tabId}"]`);
+      if (activeLink) {
+        if (currentSelectedSector && SECTOR_SPECIFIC_TABS.includes(tabId)) {
+          contentTitle.textContent = `Setor: ${currentSelectedSector} - ${activeLink.textContent}`;
+        } else {
+          contentTitle.textContent = activeLink.textContent;
+        }
+      }
+      exportPdfBtn.disabled = !currentSelectedSector || !SECTOR_SPECIFIC_TABS.includes(tabId);
+      if (tabId === 'tab-chart' && currentSelectedSector) {
+        const chartCanvas = sectorChartContentDiv.querySelector('canvas');
+        if (chartCanvas && !collaboratorSectorChartInstance) {
+          requestAnimationFrame(() => renderSectorChart_Single(currentSelectedSector, processedPeriodData, chartCanvas.id));
+        } else if (!chartCanvas) {
+          generateSectorDetailsContent(currentSelectedSector, processedPeriodData);
+          switchTab('tab-chart', true);
+        }
+      }
+    }
+    function createSectorChartCanvas(canvasId) {
+      return `<canvas id="${canvasId}"></canvas>`;
+    }
+    function generateOverallSummaryTableHTML(periodData) {
+      const periods = Object.keys(periodData);
+      const overallTotals = {};
+      periods.forEach(p => {
+        overallTotals[p] = {};
+        HOUR_TYPES.forEach(type => overallTotals[p][type] = 0);
+        if (periodData[p]?.sectors)
+          Object.values(periodData[p].sectors).forEach(sectorData => HOUR_TYPES.forEach(type => {
+            const val = Number(sectorData[type] ?? 0);
+            if (!isNaN(val)) overallTotals[p][type] += val;
+          }));
+      });
+      let tableHTML = '<table><thead><tr><th title="Tipo de Hora Extra">Tipo Hora</th>';
+      periods.forEach(p => tableHTML += `<th>${p} (HH:MM)</th>`);
+      if (periods.length > 1)
+        for (let i = 1; i < periods.length; i++)
+          tableHTML += `<th>Dif. (${periods[0]} vs ${periods[i]})</th><th>Dif. %</th>`;
+      tableHTML += '</tr></thead><tbody>';
+      HOUR_TYPES.forEach(hourType => {
+        tableHTML += `<tr><td>${HOUR_TYPE_DISPLAY_NAMES[hourType] || hourType}</td>`;
+        const values = periods.map(p => overallTotals[p]?.[hourType] ?? 0);
+        values.forEach(val => tableHTML += `<td>${formatMinutesToHHMM(val)}</td>`);
+        if (periods.length > 1)
+          for (let i = 1; i < periods.length; i++) {
+            const valA = values[0];
+            const valB = values[i];
+            const { diff, percent } = calculateDiff(valA, valB);
+            const diffClass = getDiffClass(diff);
+            tableHTML += `<td class="${diffClass}">${formatDiffValue(diff)}</td><td class="${diffClass}">${formatPercentValue(percent, valB)}</td>`;
+          }
+        tableHTML += `</tr>`;
+      });
+      tableHTML += `<tr style="font-weight: bold; background-color: var(--table-header-bg);"><td>TOTAL HE</td>`;
+      const totalValues = periods.map(p => {
+        let total = 0;
+        HE_TYPES_FOR_TOTAL.forEach(type => {
+          const val = Number(overallTotals[p]?.[type] ?? 0);
+          if (!isNaN(val)) total += val;
+        });
+        return total;
+      });
+      totalValues.forEach(val => tableHTML += `<td>${formatMinutesToHHMM(val)}</td>`);
+      if (periods.length > 1)
+        for (let i = 1; i < periods.length; i++) {
+          const valA = totalValues[0];
+          const valB = totalValues[i];
+          const { diff, percent } = calculateDiff(valA, valB);
+          const diffClass = getDiffClass(diff);
+          tableHTML += `<td class="${diffClass}">${formatDiffValue(diff)}</td><td class="${diffClass}">${formatPercentValue(percent, valB)}</td>`;
+        }
+      tableHTML += `</tr></tbody></table>`;
+      return tableHTML;
+    }
+    function generateSectorComparisonTableHTML(periodData, filterSector = null) {
+      const periods = Object.keys(periodData);
+      const allSectors = new Set();
+      periods.forEach(p => {
+        if (periodData[p]?.sectors)
+          Object.keys(periodData[p].sectors).forEach(s => allSectors.add(s || 'Sem Setor'));
+      });
+      const sectorsToDisplay = filterSector ? [filterSector] : Array.from(allSectors).sort((a,b) => a.localeCompare(b, 'pt-BR'));
+      let tableHTML = `<div class="content-card"><h4>Comparativo Geral do Setor</h4><table><thead><tr>`;
+      if (!filterSector) tableHTML += '<th>Setor</th>';
+      tableHTML += '<th title="Tipo de Hora Extra">Tipo Hora</th>';
+      periods.forEach(p => tableHTML += `<th>${p} (HH:MM)</th>`);
+      if (periods.length > 1)
+        for (let i = 1; i < periods.length; i++) tableHTML += `<th>Dif. (${periods[0]} vs ${periods[i]})</th><th>Dif. %</th>`;
+      tableHTML += '</tr></thead><tbody>';
+      sectorsToDisplay.forEach(sector => {
+        const totalRowCount = HOUR_TYPES.length + 1;
+        HOUR_TYPES.forEach((hourType, typeIndex) => {
+          tableHTML += `<tr>`;
+          if (!filterSector && typeIndex === 0)
+            tableHTML += `<td rowspan="${totalRowCount}" style="vertical-align: middle; font-weight: 500;">${sector}</td>`;
+          tableHTML += `<td>${HOUR_TYPE_DISPLAY_NAMES[hourType] || hourType}</td>`;
+          const values = periods.map(p => periodData[p]?.sectors?.[sector]?.[hourType] ?? 0);
+          values.forEach(val => tableHTML += `<td>${formatMinutesToHHMM(val)}</td>`);
+          if (periods.length > 1)
+            for (let i = 1; i < periods.length; i++) {
+              const valA = values[0];
+              const valB = values[i];
+              const { diff, percent } = calculateDiff(valA, valB);
+              const diffClass = getDiffClass(diff);
+              tableHTML += `<td class="${diffClass}">${formatDiffValue(diff)}</td><td class="${diffClass}">${formatPercentValue(percent, valB)}</td>`;
+            }
+          tableHTML += `</tr>`;
+        });
+        tableHTML += `<tr class="total-he-row">`;
+        if (filterSector) tableHTML += `<td>TOTAL HE</td>`; else tableHTML += `<td>TOTAL HE</td>`;
+        const totalValues = periods.map(p => calculateSectorTotalHE(periodData[p]?.sectors?.[sector]));
+        totalValues.forEach(val => tableHTML += `<td>${formatMinutesToHHMM(val)}</td>`);
+        if (periods.length > 1)
+          for (let i = 1; i < periods.length; i++) {
+            const valA = totalValues[0];
+            const valB = totalValues[i];
+            const { diff, percent } = calculateDiff(valA, valB);
+            const diffClass = getDiffClass(diff);
+            tableHTML += `<td class="${diffClass}">${formatDiffValue(diff)}</td><td class="${diffClass}">${formatPercentValue(percent, valB)}</td>`;
+          }
+        tableHTML += `</tr>`;
+      });
+      tableHTML += '</tbody></table></div>';
+      return tableHTML;
+    }
+    function generateCollaboratorTableHTML_Sector(sectorName, periodData, tableId) {
+      const periods = Object.keys(periodData);
+      const collaboratorsForTable = [];
+      const allMatriculasInSector = new Set();
+      periods.forEach(p => Object.entries(periodData[p]?.collaborators ?? {}).forEach(([matricula, collabData]) => {
+        if (collabData.sector === sectorName) allMatriculasInSector.add(matricula);
+      }));
+      allMatriculasInSector.forEach(matricula => {
+        let collabEntry = { matricula, name: '', turn: '', sector: sectorName, periods: {} };
+        let hasDataInSector = false;
+        periods.forEach(p => {
+          const data = periodData[p]?.collaborators?.[matricula];
+          if (data && data.sector === sectorName) {
+            collabEntry.name = data.name;
+            collabEntry.turn = data.turn;
+            collabEntry.periods[p] = {};
+            HOUR_TYPES.forEach(type => collabEntry.periods[p][type] = data[type] ?? 0);
+            collabEntry.periods[p].totalHE = calculateCollaboratorTotalHE(data);
+            hasDataInSector = true;
+          } else if (data && data.sector !== sectorName) {
+            collabEntry.periods[p] = {};
+            HOUR_TYPES.forEach(type => collabEntry.periods[p][type] = 0);
+            collabEntry.periods[p].totalHE = 0;
+            collabEntry.name = collabEntry.name || data.name;
+            collabEntry.turn = collabEntry.turn || data.turn;
+          } else {
+            collabEntry.periods[p] = {};
+            HOUR_TYPES.forEach(type => collabEntry.periods[p][type] = 0);
+            collabEntry.periods[p].totalHE = 0;
+          }
+        });
+        if (hasDataInSector) {
+          if (!collabEntry.name) {
+            const firstPeriodWithName = periods.find(p => periodData[p]?.collaborators?.[matricula]?.name);
+            collabEntry.name = firstPeriodWithName ? periodData[firstPeriodWithName].collaborators[matricula].name : `Matrícula ${matricula}`;
+          }
+          if (!collabEntry.turn) {
+            const firstPeriodWithTurn = periods.find(p => periodData[p]?.collaborators?.[matricula]?.turn);
+            collabEntry.turn = firstPeriodWithTurn ? periodData[firstPeriodWithTurn].collaborators[matricula].turn : 'N/A';
+          }
+          collaboratorsForTable.push(collabEntry);
+        }
+      });
+      collaboratorsForTable.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
+      if (collaboratorsForTable.length === 0) return `<p style='text-align:center; color: var(--text-muted);'>Nenhum colaborador encontrado neste setor para os períodos analisados.</p>`;
+      let tableHTML = `<table id="${tableId}"><thead><tr><th class="sortable" title="Ordenar por Nome">Colaborador (Matrícula)</th><th class="sortable" title="Ordenar por Turno">Turno</th><th>Tipo Hora</th>`;
+      periods.forEach((p, idx) => tableHTML += `<th>${p} (HH:MM)</th>`);
+      if (periods.length > 1)
+        for (let i = 1; i < periods.length; i++)
+          tableHTML += `<th>Dif. (${periods[0]} vs ${periods[i]})</th><th>Dif. %</th>`;
+      tableHTML += '</tr></thead><tbody>';
+      collaboratorsForTable.forEach(collabInfo => {
+        const totalRowCount = HOUR_TYPES.length + 1;
+        HOUR_TYPES.forEach((hourType, typeIndex) => {
+          tableHTML += `<tr>`;
+          if (typeIndex === 0) {
+            tableHTML += `<td rowspan="${totalRowCount}" style="vertical-align: middle;" class="collab-name" data-matricula="${collabInfo.matricula}" data-name="${collabInfo.name}" title="Clique para ver detalhes de ${collabInfo.name}">${collabInfo.name} (${collabInfo.matricula})</td>`;
+            tableHTML += `<td rowspan="${totalRowCount}" style="vertical-align: middle;">${collabInfo.turn}</td>`;
+          }
+          tableHTML += `<td>${HOUR_TYPE_DISPLAY_NAMES[hourType] || hourType}</td>`;
+          const values = periods.map(p => collabInfo.periods[p]?.[hourType] ?? 0);
+          values.forEach(val => tableHTML += `<td>${formatMinutesToHHMM(val)}</td>`);
+          if (periods.length > 1)
+            for (let i = 1; i < periods.length; i++) {
+              const valA = collabInfo.periods[periods[0]]?.[hourType] ?? 0;
+              const valB = values[i];
+              const { diff, percent } = calculateDiff(valA, valB);
+              const diffClass = getDiffClass(diff);
+              tableHTML += `<td class="${diffClass}">${formatDiffValue(diff)}</td><td class="${diffClass}">${formatPercentValue(percent, valB)}</td>`;
+            }
+          tableHTML += `</tr>`;
+        });
+        tableHTML += `<tr class="total-he-row"><td>TOTAL HE</td>`;
+        const totalValues = periods.map(p => collabInfo.periods[p]?.totalHE ?? 0);
+        totalValues.forEach(val => tableHTML += `<td>${formatMinutesToHHMM(val)}</td>`);
+        if (periods.length > 1)
+          for (let i = 1; i < periods.length; i++) {
+            const valA = totalValues[0];
+            const valB = totalValues[i];
+            const { diff, percent } = calculateDiff(valA, valB);
+            const diffClass = getDiffClass(diff);
+            tableHTML += `<td class="${diffClass}">${formatDiffValue(diff)}</td><td class="${diffClass}">${formatPercentValue(percent, valB)}</td>`;
+          }
+        tableHTML += `</tr>`;
+      });
+      tableHTML += '</tbody></table>';
+      return tableHTML;
+    }
+    function generateTopNCollaboratorHTML(sectorName, periodData) {
+      sectorName = sectorName || 'Sem Setor';
+      const periods = Object.keys(periodData);
+      if (periods.length < 2) return '<p>Comparação Top N requer pelo menos dois períodos.</p>';
+      const p1Key = periods[0];
+      const p2Key = periods[1];
+      const collaboratorsInSectorP1 = Object.entries(processedPeriodData[p1Key]?.collaborators ?? {}).filter(([, c]) => c.sector === sectorName).map(([m, d]) => [m, {...d, totalHE: calculateCollaboratorTotalHE(d)}]);
+      const collaboratorsInSectorP2 = Object.entries(processedPeriodData[p2Key]?.collaborators ?? {}).filter(([, c]) => c.sector === sectorName).map(([m, d]) => [m, {...d, totalHE: calculateCollaboratorTotalHE(d)}]);
+      if (collaboratorsInSectorP1.length === 0 && collaboratorsInSectorP2.length === 0)
+        return `<p>Nenhum colaborador encontrado no setor '${sectorName}' para os períodos ${p1Key} e ${p2Key}.</p>`;
+      let N = 3;
+      const totalCollaborators = new Set([...collaboratorsInSectorP1.map(([m])=>m), ...collaboratorsInSectorP2.map(([m])=>m)]).size;
+      if (totalCollaborators > 40) N = 10;
+      else if (totalCollaborators > 20) N = 5;
+      N = Math.min(N, totalCollaborators);
+      if (N === 0) return `<p>Nenhum colaborador com dados para análise Top N.</p>`;
+      const getTopN = (collabList, n) => collabList.sort(([, a], [, b]) => (b.totalHE ?? 0) - (a.totalHE ?? 0)).slice(0, n);
+      const topNP1 = getTopN(collaboratorsInSectorP1, N);
+      const topNP2 = getTopN(collaboratorsInSectorP2, N);
+      let html = `<ul><li>Análise do Top ${N} (Total HE) no setor '${sectorName}' (${p1Key} vs ${p2Key}):</li>`;
+      if (topNP1.length === 0 && topNP2.length === 0) {
+        html += `<li>Nenhum colaborador com HE registrado para Top N.</li></ul>`;
+        return html;
+      }
+      const topP1Matriculas = new Set(topNP1.map(([m]) => m));
+      const topP2Matriculas = new Set(topNP2.map(([m]) => m));
+      const analyzedMatriculas = new Set();
+      topNP1.forEach(([matriculaP1, dataP1], indexP1) => {
+        analyzedMatriculas.add(matriculaP1);
+        const dataP2Entry = collaboratorsInSectorP2.find(([m]) => m === matriculaP1);
+        const dataP2 = dataP2Entry ? dataP2Entry[1] : null;
+        const totalHEP1 = dataP1.totalHE ?? 0;
+        const totalHEP2 = dataP2 ? (dataP2.totalHE ?? 0) : 0;
+        const { diff } = calculateDiff(totalHEP1, totalHEP2);
+        const diffClass = getDiffClass(diff);
+        const nameToDisplay = dataP1.name || (dataP2 ? dataP2.name : `Matrícula ${matriculaP1}`);
+        const indexP2 = topNP2.findIndex(([m]) => m === matriculaP1);
+        let rankChange = "";
+        if (indexP2 !== -1) {
+          if (indexP1 > indexP2) rankChange = ` <span style="color: var(--success-color);">(subiu da ${indexP1 + 1}ª para ${indexP2 + 1}ª)</span>`;
+          else if (indexP1 < indexP2) rankChange = ` <span style="color: var(--danger-color);">(desceu da ${indexP1 + 1}ª para ${indexP2 + 1}ª)</span>`;
+          else rankChange = ` (manteve ${indexP1 + 1}ª)`;
+        } else {
+          rankChange = ` <span style="color: var(--neutral-color);">(saiu do Top ${N})</span>`;
+        }
+        html += `<li>- <strong>${nameToDisplay}</strong>${rankChange}: ${formatMinutesToHHMM(totalHEP1)} (${p1Key}) &rarr; ${formatMinutesToHHMM(totalHEP2)} (${p2Key}) (<span class="${diffClass}">${formatMinutesVerbose(diff)}</span>).</li>`;
+      });
+      topNP2.forEach(([matriculaP2, dataP2], indexP2) => {
+        if (!analyzedMatriculas.has(matriculaP2)) {
+          const dataP1Entry = collaboratorsInSectorP1.find(([m]) => m === matriculaP2);
+          const dataP1 = dataP1Entry ? dataP1Entry[1] : null;
+          const totalHEP1 = dataP1 ? (dataP1.totalHE ?? 0) : 0;
+          const totalHEP2 = dataP2.totalHE ?? 0;
+          const { diff } = calculateDiff(totalHEP1, totalHEP2);
+          const diffClass = getDiffClass(diff);
+          const nameToDisplay = dataP2.name || (dataP1 ? dataP1.name : `Matrícula ${matriculaP2}`);
+          let rankChange = ` <span style="color: var(--info-color);">(entrou no Top ${N} na ${indexP2 + 1}ª pos.)</span>`;
+          html += `<li>- <strong>${nameToDisplay}</strong>${rankChange}: ${formatMinutesToHHMM(totalHEP1)} (${p1Key}) &rarr; ${formatMinutesToHHMM(totalHEP2)} (${p2Key}) (<span class="${diffClass}">${formatMinutesVerbose(diff)}</span>).</li>`;
+        }
+      });
+      html += '</ul>';
+      return html;
+    }
+    function generateTextualReportHTML_General(periodData) {
+      const periods = Object.keys(periodData);
+      if (periods.length < 2) return '<p>Relatório comparativo geral requer pelo menos dois períodos.</p>';
+      let reportHTML = '<ul>';
+      const p1Key = periods[0];
+      const p2Key = periods[1];
+      const overallTotalsP1 = {};
+      HOUR_TYPES.forEach(t => overallTotalsP1[t] = 0);
+      const overallTotalsP2 = {};
+      HOUR_TYPES.forEach(t => overallTotalsP2[t] = 0);
+      if (periodData[p1Key]?.sectors)
+        Object.values(periodData[p1Key].sectors).forEach(s => HOUR_TYPES.forEach(t => {
+          const val = Number(s[t] ?? 0);
+          if (!isNaN(val)) overallTotalsP1[t] += val;
+        }));
+      if (periodData[p2Key]?.sectors)
+        Object.values(periodData[p2Key].sectors).forEach(s => HOUR_TYPES.forEach(t => {
+          const val = Number(s[t] ?? 0);
+          if (!isNaN(val)) overallTotalsP2[t] += val;
+        }));
+      let overallChangesText = [];
+      let totalP1 = 0;
+      let totalP2 = 0;
+      HE_TYPES_FOR_TOTAL.forEach(type => {
+        const valA = overallTotalsP1[type] ?? 0;
+        const valB = overallTotalsP2[type] ?? 0;
+        totalP1 += valA;
+        totalP2 += valB;
+        const { diff, percent } = calculateDiff(valA, valB);
+        if (diff !== 0) {
+          const diffClass = getDiffClass(diff);
+          overallChangesText.push(`<span class="${diffClass}">${HOUR_TYPE_DISPLAY_NAMES[type] || type} ${formatMinutesVerbose(diff)} (${formatPercentValue(percent, valB)})</span>`);
+        }
+      });
+      const totalDiff = calculateDiff(totalP1, totalP2);
+      const totalDiffClass = getDiffClass(totalDiff.diff);
+      reportHTML += `<li><strong>Comparativo Geral (${p1Key} vs ${p2Key}):</strong> O total geral de horas extras teve ${formatMinutesVerbose(totalDiff.diff)} (<span class="${totalDiffClass}">${formatPercentValue(totalDiff.percent, totalP2)}</span>).`;
+      if(overallChangesText.length > 0)
+        reportHTML += `<br/>&nbsp;&nbsp;<i>Detalhes por tipo:</i> ${overallChangesText.join('; ')}.`;
+      else if (totalDiff.diff !== 0)
+        reportHTML += ` Nenhuma mudança significativa detectada por tipo de hora.`;
+      else
+        reportHTML += ` Nenhum tipo de hora extra teve variação.`;
+      reportHTML += '</li>';
+      let maxChangeAbs = 0;
+      let sectorMaxChange = null;
+      let maxDiffValue = 0;
+      const allSectors = new Set();
+      periods.forEach(p => {
+        if (periodData[p]?.sectors)
+          Object.keys(periodData[p].sectors).forEach(s => allSectors.add(s || 'Sem Setor'));
+      });
+      allSectors.forEach(sector => {
+        let sectorTotalP1 = calculateSectorTotalHE(periodData[p1Key]?.sectors?.[sector]);
+        let sectorTotalP2 = calculateSectorTotalHE(periodData[p2Key]?.sectors?.[sector]);
+        const diff = sectorTotalP2 - sectorTotalP1;
+        const diffAbs = Math.abs(diff);
+        if (diffAbs > maxChangeAbs) {
+          maxChangeAbs = diffAbs;
+          maxDiffValue = diff;
+          sectorMaxChange = sector;
+        }
+      });
+      if (sectorMaxChange && maxDiffValue !== 0) {
+        const changeDesc = maxDiffValue > 0 ? 'o maior aumento absoluto' : 'a maior redução absoluta';
+        const diffClass = getDiffClass(maxDiffValue);
+        reportHTML += `<li><strong>Destaque Setor:</strong> O setor '${sectorMaxChange}' apresentou ${changeDesc} no total de horas (<span class="${diffClass}">${formatMinutesVerbose(maxDiffValue)}</span>).</li>`;
+      } else if (allSectors.size > 0)
+        reportHTML += `<li><strong>Destaque Setor:</strong> Nenhuma variação significativa encontrada nos totais dos setores.</li>`;
+      reportHTML += '</ul>';
+      return reportHTML;
+    }
+    function generateTextualReportHTML_Sector(sectorName, periodData) {
+      sectorName = sectorName || 'Sem Setor';
+      const periods = Object.keys(periodData);
+      if (periods.length < 2) return '<p>Comparação do setor requer pelo menos dois períodos.</p>';
+      let reportHTML = '<ul>';
+      const p1Key = periods[0];
+      const p2Key = periods[1];
+      let sectorTotalP1 = 0;
+      let sectorTotalP2 = 0;
+      let sectorChangesText = [];
+      HE_TYPES_FOR_TOTAL.forEach(type => {
+        const valA = periodData[p1Key]?.sectors?.[sectorName]?.[type] ?? 0;
+        const valB = periodData[p2Key]?.sectors?.[sectorName]?.[type] ?? 0;
+        sectorTotalP1 += valA;
+        sectorTotalP2 += valB;
+        const { diff, percent } = calculateDiff(valA, valB);
+        if (diff !== 0) {
+          const diffClass = getDiffClass(diff);
+          sectorChangesText.push(`<span class="${diffClass}">${HOUR_TYPE_DISPLAY_NAMES[type] || type} ${formatMinutesVerbose(diff)} (${formatPercentValue(percent, valB)})</span>`);
+        }
+      });
+      const totalDiff = calculateDiff(sectorTotalP1, sectorTotalP2);
+      const totalDiffClass = getDiffClass(totalDiff.diff);
+      reportHTML += `<li><strong>Total do Setor (${p1Key} vs ${p2Key}):</strong> Houve ${formatMinutesVerbose(totalDiff.diff)} no total de horas extras (<span class="${totalDiffClass}">${formatPercentValue(totalDiff.percent, sectorTotalP2)}</span>).</li>`;
+      if (sectorChangesText.length > 0)
+        reportHTML += `<li><strong>Detalhes por Tipo:</strong> ${sectorChangesText.join('; ')}.</li>`;
+      else if (totalDiff.diff !== 0)
+        reportHTML += `<li><strong>Detalhes por Tipo:</strong> Nenhuma variação significativa por tipo de hora.</li>`;
+      else
+        reportHTML += `<li><strong>Detalhes por Tipo:</strong> Sem variações notáveis.</li>`;
+      const collaboratorsP1 = Object.entries(periodData[p1Key]?.collaborators ?? {}).filter(([,c])=>c.sector===sectorName).map(([m,d])=>[m,{...d, totalHE: calculateCollaboratorTotalHE(d)}]);
+      const collaboratorsP2 = Object.entries(periodData[p2Key]?.collaborators ?? {}).filter(([,c])=>c.sector===sectorName).map(([m,d])=>[m,{...d, totalHE: calculateCollaboratorTotalHE(d)}]);
+      const sortedP1 = collaboratorsP1.sort(([, a], [, b]) => (b.totalHE ?? 0) - (a.totalHE ?? 0));
+      const sortedP2 = collaboratorsP2.sort(([, a], [, b]) => (b.totalHE ?? 0) - (a.totalHE ?? 0));
+      if (sortedP1.length > 0 || sortedP2.length > 0) {
+        const topP1Entry = sortedP1[0];
+        const topP2Entry = sortedP2[0];
+        const topP1Name = topP1Entry ? topP1Entry[1].name : null;
+        const topP1Hours = topP1Entry ? formatMinutesToHHMM(topP1Entry[1].totalHE ?? 0) : "00:00";
+        const topP1Matricula = topP1Entry ? topP1Entry[0] : null;
+        const topP2Name = topP2Entry ? topP2Entry[1].name : null;
+        const topP2Hours = topP2Entry ? formatMinutesToHHMM(topP2Entry[1].totalHE ?? 0) : "00:00";
+        const topP2Matricula = topP2Entry ? topP2Entry[0] : null;
+        reportHTML += `<li><strong>Top Colaborador (Total HE):</strong> `;
+        if (topP1Matricula && topP2Matricula) {
+          if (topP1Matricula === topP2Matricula)
+            reportHTML += `${topP1Name} permaneceu (${topP1Hours} &rarr; ${topP2Hours}).`;
+          else
+            reportHTML += `Mudou de ${topP1Name} (${topP1Hours}) para ${topP2Name} (${topP2Hours}).`;
+        } else if (topP2Matricula) {
+          reportHTML += `${topP2Name} (${topP2Hours}) em ${p2Key}.`;
+          if(topP1Matricula) reportHTML += ` (Anterior: ${topP1Name} ${topP1Hours}).`;
+        } else if (topP1Matricula)
+          reportHTML += `${topP1Name} (${topP1Hours}) em ${p1Key}.`;
+        reportHTML += `</li>`;
+      } else reportHTML += `<li><strong>Top Colaborador (Total HE):</strong> Nenhum colaborador com HE neste setor.</li>`;
+      reportHTML += '</ul>';
+      return reportHTML;
+    }
+    function generateCollaboratorTableHTML_Single(matricula, periodData, tableId) {
+      const periods = Object.keys(periodData);
+      const collabData = {};
+      periods.forEach(p => {
+        const data = periodData[p]?.collaborators?.[matricula];
+        if (data) collabData[p] = {...data, totalHE: calculateCollaboratorTotalHE(data) };
+        else {
+          collabData[p] = { totalHE: 0 };
+          HOUR_TYPES.forEach(type => collabData[p][type] = 0);
+        }
+      });
+      let tableHTML = `<table id="${tableId}"><thead><tr><th>Tipo Hora</th>`;
+      periods.forEach(p => tableHTML += `<th>${p} (HH:MM)</th>`);
+      if (periods.length > 1)
+        for (let i = 1; i < periods.length; i++)
+          tableHTML += `<th>Dif. (${periods[0]} vs ${periods[i]})</th><th>Dif. %</th>`;
+      tableHTML += '</tr></thead><tbody>';
+      HOUR_TYPES.forEach(hourType => {
+        tableHTML += `<tr><td>${HOUR_TYPE_DISPLAY_NAMES[hourType] || hourType}</td>`;
+        const values = periods.map(p => collabData[p]?.[hourType] ?? 0);
+        values.forEach(val => tableHTML += `<td>${formatMinutesToHHMM(val)}</td>`);
+        if (periods.length > 1)
+          for (let i = 1; i < periods.length; i++) {
+            const valA = collabData[periods[0]]?.[hourType] ?? 0;
+            const valB = values[i];
+            const { diff, percent } = calculateDiff(valA, valB);
+            const diffClass = getDiffClass(diff);
+            tableHTML += `<td class="${diffClass}">${formatDiffValue(diff)}</td><td class="${diffClass}">${formatPercentValue(percent, valB)}</td>`;
+          }
+        tableHTML += `</tr>`;
+      });
+      tableHTML += `<tr class="total-he-row"><td style="font-weight:bold;">TOTAL HE</td>`;
+      const totalValues = periods.map(p => collabData[p]?.totalHE ?? 0);
+      totalValues.forEach(val => tableHTML += `<td>${formatMinutesToHHMM(val)}</td>`);
+      if (periods.length > 1)
+        for (let i = 1; i < periods.length; i++) {
+          const valA = totalValues[0];
+          const valB = totalValues[i];
+          const { diff, percent } = calculateDiff(valA, valB);
+          const diffClass = getDiffClass(diff);
+          tableHTML += `<td class="${diffClass}">${formatDiffValue(diff)}</td><td class="${diffClass}">${formatPercentValue(percent, valB)}</td>`;
+        }
+      tableHTML += `</tr></tbody></table>`;
+      return tableHTML;
+    }
+    function generateTextualReportHTML_Collaborator(matricula, periodData) {
+      const periods = Object.keys(periodData);
+      if (periods.length < 2) return '<p>Comparação individual requer pelo menos dois períodos.</p>';
+      let reportHTML = '<ul>';
+      const p1Key = periods[0];
+      const p2Key = periods[1];
+      const collabP1 = periodData[p1Key]?.collaborators?.[matricula];
+      const collabP2 = periodData[p2Key]?.collaborators?.[matricula];
+      let totalP1 = collabP1 ? calculateCollaboratorTotalHE(collabP1) : 0;
+      let totalP2 = collabP2 ? calculateCollaboratorTotalHE(collabP2) : 0;
+      let changesText = [];
+      HOUR_TYPES.forEach(type => {
+        const valA = collabP1?.[type] ?? 0;
+        const valB = collabP2?.[type] ?? 0;
+        const { diff, percent } = calculateDiff(valA, valB);
+        if (diff !== 0) {
+          const diffClass = getDiffClass(diff);
+          changesText.push(`<span class="${diffClass}">${HOUR_TYPE_DISPLAY_NAMES[type] || type} ${formatMinutesVerbose(diff)} (${formatPercentValue(percent, valB)})</span>`);
+        }
+      });
+      const totalDiff = calculateDiff(totalP1, totalP2);
+      const totalDiffClass = getDiffClass(totalDiff.diff);
+      reportHTML += `<li><strong>Comparativo (${p1Key} vs ${p2Key}):</strong> O total de horas extras ${formatMinutesVerbose(totalDiff.diff)} (<span class="${totalDiffClass}">${formatPercentValue(totalDiff.percent, totalP2)}</span>).</li>`;
+      if (changesText.length > 0)
+        reportHTML += `<li><strong>Detalhes por Tipo:</strong> ${changesText.join('; ')}.</li>`;
+      else if (totalDiff.diff !== 0)
+        reportHTML += `<li><strong>Detalhes por Tipo:</strong> Sem variações notáveis por tipo.</li>`;
+      else
+        reportHTML += `<li><strong>Detalhes por Tipo:</strong> Nenhuma variação notável.</li>`;
+      const sectorChange = sectorChangeNotifications.find(n => n.matricula === matricula && n.periodChange === `${p1Key} -> ${p2Key}`);
+      if (sectorChange)
+        reportHTML += `<li><strong>Mudança de Setor:</strong> Transferido de <span class="old-sector">${sectorChange.oldSector}</span> para <span class="new-sector">${sectorChange.newSector}</span> neste intervalo.</li>`;
+      else {
+        const sectorP1 = collabP1?.sector || 'N/A';
+        const sectorP2 = collabP2?.sector || 'N/A';
+        if (collabP1 && collabP2 && sectorP1 !== sectorP2)
+          reportHTML += `<li><strong>Observação:</strong> Setor diferente (${sectorP1} &rarr; ${sectorP2}).</li>`;
+        else if (collabP1 || collabP2)
+          reportHTML += `<li><strong>Setor:</strong> ${sectorP2 !== 'N/A' ? sectorP2 : sectorP1}.</li>`;
+      }
+      reportHTML += '</ul>';
+      return reportHTML;
+    }
+    function renderSectorChart_Single(sectorName, periodData, canvasId) {
+      const canvasElement = document.getElementById(canvasId);
+      if (!canvasElement) {
+        console.error(`Canvas ${canvasId} not found.`);
+        return;
+      }
+      const canvasContext = canvasElement.getContext('2d');
+      const periods = Object.keys(periodData);
+      if (periods.length < 1) return;
+      const datasets = [];
+      const colors = ['rgba(0,122,255,0.7)', 'rgba(52,199,89,0.7)', 'rgba(255,149,0,0.7)', 'rgba(255,59,48,0.7)', 'rgba(88,86,214,0.7)', 'rgba(175,82,222,0.7)', 'rgba(0,199,190,0.7)'];
+      periods.forEach((p, index) => {
+        const sectorPeriodData = periodData[p]?.sectors?.[sectorName];
+        let totalMinutes = calculateSectorTotalHE(sectorPeriodData);
+        const dataValue = totalMinutes / 60;
+        datasets.push({
+          label: p,
+          data: [dataValue],
+          backgroundColor: colors[index % colors.length],
+          borderColor: colors[index % colors.length].replace('0.7', '1'),
+          borderWidth: 1
+        });
+      });
+      if (datasets.length === 0 || datasets.every(ds => ds.data.length === 0 || ds.data[0] === 0)) {
+        if (collaboratorSectorChartInstance && collaboratorSectorChartInstance.canvas.id === canvasId) {
+          collaboratorSectorChartInstance.destroy();
+          collaboratorSectorChartInstance = null;
+        }
+        canvasElement.parentElement.innerHTML += '<p style="text-align:center; color:var(--text-muted);">Sem dados para exibir no gráfico.</p>';
+        canvasElement.remove();
+        return;
+      }
+      const chartData = { labels: ['Total HE'], datasets: datasets };
+      const config = {
+        type: 'bar',
+        data: chartData,
+        options: {
+          indexAxis: 'x',
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Total Horas Extras (Horas)' } },
+            x: { ticks: { display: false } }
+          },
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: periods.length > 1, position: 'bottom', labels: { padding: 15 } },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  if (context.parsed.y !== null) {
+                    label += context.parsed.y.toFixed(2) + ' horas';
+                    const totalMinutes = context.parsed.y * 60;
+                    label += ` (${formatMinutesToHHMM(totalMinutes)})`;
+                  }
+                  return label;
+                }
+              }
+            },
+            title: { display: false }
+          }
+        }
+      };
+      if (collaboratorSectorChartInstance) {
+        collaboratorSectorChartInstance.destroy();
+        collaboratorSectorChartInstance = null;
+      }
+      try {
+        collaboratorSectorChartInstance = new Chart(canvasContext, config);
+      } catch (e) {
+        console.error(`Error creating sector chart ${sectorName}:`, e);
+        showToast(`Erro renderizar gráfico ${sectorName}.`, 'error');
+      }
+    }
+    function renderCollaboratorChart_Single(matricula, periodData, canvasId) {
+      const canvasElement = document.getElementById(canvasId);
+      const chartSection = document.getElementById(`collab-chart-section-${matricula}`);
+      if (!canvasElement || !chartSection) {
+        console.error(`Canvas/Section not found for collab chart ${matricula}.`);
+        if(chartSection) chartSection.innerHTML += '<p style="color:red;">Erro gráfico.</p>';
+        return;
+      }
+      const canvasContext = canvasElement.getContext('2d');
+      const periods = Object.keys(periodData);
+      if (periods.length < 1) {
+        chartSection.innerHTML = '<h4>Gráfico Individual</h4><p>Sem dados.</p>';
+        return;
+      }
+      const chartDataValues = periods.map(p => {
+        const collabP = periodData[p]?.collaborators?.[matricula];
+        return collabP ? (calculateCollaboratorTotalHE(collabP) / 60) : 0;
+      });
+      if (chartDataValues.every(v => v === 0)) {
+        chartSection.innerHTML = '<h4>Gráfico Individual</h4><p>Nenhuma HE registrada.</p>';
+        if (collaboratorDetailChartInstance && collaboratorDetailChartInstance.canvas.id === canvasId) {
+          collaboratorDetailChartInstance.destroy();
+          collaboratorDetailChartInstance = null;
+        }
+        return;
+      }
+      const chartData = {
+        labels: periods,
+        datasets: [{
+          label: 'Total Horas Extras (Horas)',
+          data: chartDataValues,
+          backgroundColor: 'rgba(0,122,255,0.1)',
+          borderColor: 'rgba(0,122,255,0.8)',
+          borderWidth: 1.5,
+          fill: true,
+          tension: 0.2,
+          pointBackgroundColor: 'rgba(0,122,255,1)',
+          pointRadius: 3,
+          pointHoverRadius: 5
+        }]
+      };
+      const config = {
+        type: 'line',
+        data: chartData,
+        options: {
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Total HE (Horas)' } },
+            x: { title: { display: false } }
+          },
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  if (context.parsed.y !== null) {
+                    label += context.parsed.y.toFixed(2) + ' horas';
+                    const totalMinutes = context.parsed.y * 60;
+                    label += ` (${formatMinutesToHHMM(totalMinutes)})`;
+                  }
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      };
+      if (collaboratorDetailChartInstance) {
+        collaboratorDetailChartInstance.destroy();
+        collaboratorDetailChartInstance = null;
+      }
+      try {
+        collaboratorDetailChartInstance = new Chart(canvasContext, config);
+      } catch (chartError) {
+        console.error(`Error creating collab chart ${matricula}:`, chartError);
+        chartSection.innerHTML += `<p style="color:red;">Erro renderizar gráfico: ${chartError.message}</p>`;
+      }
+    }
+    // === Exibição do Detalhe do Colaborador (Modal Expandido) ===
+    function displayCollaboratorDetails(matricula, name, sector, periodData) {
+      currentSelectedMatricula = matricula;
+      collabPanelTitle.textContent = `${name} (${matricula})`;
+      collabPanelContent.innerHTML = '';
+      if (collaboratorDetailChartInstance) {
+        collaboratorDetailChartInstance.destroy();
+        collaboratorDetailChartInstance = null;
+      }
+      const collabTableId = `collab-detail-table-${matricula}`;
+      const collabChartId = `collab-detail-chart-${matricula}`;
+      const collabChartSectionId = `collab-chart-section-${matricula}`;
+      let contentHTML = '';
+      contentHTML += `<div class="content-card"><h4>Comparativo Individual <button type="button" class="csv-btn" onclick="generateAndExportCollabCsv('${matricula}')">CSV</button></h4>`;
+      try {
+        contentHTML += generateCollaboratorTableHTML_Single(matricula, periodData, collabTableId);
+      } catch (e) {
+        contentHTML += `<p style="color:red;">Erro gerar tabela.</p>`;
+      }
+      contentHTML += `</div>`;
+      contentHTML += `<div class="content-card" id="${collabChartSectionId}"><h4>Gráfico (Total HE)</h4><div class="chart-container" style="height: 250px;"><canvas id="${collabChartId}"></canvas></div></div>`;
+      contentHTML += `<div class="content-card"><h4>Análise Individual</h4><div class="text-report-container">`;
+      try {
+        contentHTML += generateTextualReportHTML_Collaborator(matricula, periodData);
+      } catch(e) {
+        contentHTML += `<p style="color:red;">Erro gerar análise.</p>`;
+      }
+      contentHTML += `</div></div>`;
+      collabPanelContent.innerHTML = contentHTML;
+      requestAnimationFrame(() => {
+        if (currentSelectedMatricula === matricula)
+          renderCollaboratorChart_Single(matricula, periodData, collabChartId);
+      });
+      collaboratorDetailPanel.classList.add('visible');
+      exportCollabPdfBtn.disabled = false;
+    }
+    function closeCollaboratorPanel() {
+      collaboratorDetailPanel.classList.remove('visible');
+      currentSelectedMatricula = null;
+      exportCollabPdfBtn.disabled = true;
+      if (collaboratorDetailChartInstance) {
+        collaboratorDetailChartInstance.destroy();
+        collaboratorDetailChartInstance = null;
+      }
+      setTimeout(() => {
+        if (!collaboratorDetailPanel.classList.contains('visible')) {
+          collabPanelContent.innerHTML = '';
+          collabPanelTitle.textContent = 'Detalhes do Colaborador';
+        }
+      }, 350);
+    }
+    // === CSV Export Functions ===
+    function generateAndExportSectorCollabCsv(sectorName) {
+      if (!currentSelectedSector || currentSelectedSector !== sectorName || !processedPeriodData) {
+        showToast("Selecione o setor desejado.", "warning");
+        return;
+      }
+      const periods = Object.keys(processedPeriodData);
+      const dataToExport = [];
+      const safePeriodHeaders = periods.map(p => p.replace(/[^a-zA-Z0-9_]/g, '_'));
+      const headers = ['Matricula', 'Nome', 'Turno', 'Tipo_Hora', ...safePeriodHeaders];
+      const diffHeaders = [];
+      if (periods.length > 1) {
+        for (let i = 1; i < periods.length; i++) {
+          const hDiff = `Dif_${safePeriodHeaders[0]}_vs_${safePeriodHeaders[i]}`;
+          const hPerc = `Perc_${safePeriodHeaders[0]}_vs_${safePeriodHeaders[i]}`;
+          headers.push(hDiff, hPerc);
+          diffHeaders.push({ diff: hDiff, perc: hPerc, indexA: 0, indexB: i });
+        }
+      }
+      const collaboratorsProcessed = new Set();
+      periods.forEach(p => Object.entries(processedPeriodData[p]?.collaborators ?? {}).forEach(([matricula, collabData]) => {
+        if (collabData.sector === sectorName) collaboratorsProcessed.add(matricula);
+      }));
+      collaboratorsProcessed.forEach(matricula => {
+        let latestData = null;
+        for(let i = periods.length - 1; i >= 0; i--) {
+          const data = processedPeriodData[periods[i]]?.collaborators?.[matricula];
+          if (data) { latestData = data; break; }
+        }
+        latestData = latestData || { name: `Matrícula ${matricula}`, turn: 'N/A' };
+        HOUR_TYPES.forEach(hourType => {
+          const row = { Matricula: matricula, Nome: latestData.name, Turno: latestData.turn, Tipo_Hora: HOUR_TYPE_DISPLAY_NAMES[hourType] || hourType };
+          const values = periods.map(p_inner => processedPeriodData[p_inner]?.collaborators?.[matricula]?.[hourType] ?? 0);
+          periods.forEach((p_inner, idx) => row[safePeriodHeaders[idx]] = formatMinutesToHHMM(values[idx]));
+          diffHeaders.forEach(dh => {
+            const valA = values[dh.indexA];
+            const valB = values[dh.indexB];
+            const { diff, percent } = calculateDiff(valA, valB);
+            row[dh.diff] = formatDiffValue(diff);
+            row[dh.perc] = formatPercentValue(percent, valB);
+          });
+          dataToExport.push(row);
+        });
+        const totalRow = { Matricula: matricula, Nome: latestData.name, Turno: latestData.turn, Tipo_Hora: 'TOTAL HE' };
+        const totalValues = periods.map(p_inner => {
+          const collabP = processedPeriodData[p_inner]?.collaborators?.[matricula];
+          return collabP ? calculateCollaboratorTotalHE(collabP) : 0;
+        });
+        periods.forEach((p_inner, idx) => totalRow[safePeriodHeaders[idx]] = formatMinutesToHHMM(totalValues[idx]));
+        diffHeaders.forEach(dh => {
+          const valA = totalValues[dh.indexA];
+          const valB = totalValues[dh.indexB];
+          const { diff, percent } = calculateDiff(valA, valB);
+          totalRow[dh.diff] = formatDiffValue(diff);
+          totalRow[dh.perc] = formatPercentValue(percent, valB);
+        });
+        dataToExport.push(totalRow);
+      });
+      dataToExport.sort((a, b) => {
+        const nameComp = a.Nome.localeCompare(b.Nome, 'pt-BR');
+        if (nameComp !== 0) return nameComp;
+        if (a.Tipo_Hora === 'TOTAL HE') return 1;
+        if (b.Tipo_Hora === 'TOTAL HE') return -1;
+        const typeAKey = Object.keys(HOUR_TYPE_DISPLAY_NAMES).find(key => HOUR_TYPE_DISPLAY_NAMES[key] === a.Tipo_Hora) || a.Tipo_Hora;
+        const typeBKey = Object.keys(HOUR_TYPE_DISPLAY_NAMES).find(key => HOUR_TYPE_DISPLAY_NAMES[key] === b.Tipo_Hora) || b.Tipo_Hora;
+        const typeAIndex = HOUR_TYPES.indexOf(typeAKey);
+        const typeBIndex = HOUR_TYPES.indexOf(typeBKey);
+        if (typeAIndex !== -1 && typeBIndex !== -1) return typeAIndex - typeBIndex;
+        return a.Tipo_Hora.localeCompare(b.Tipo_Hora, 'pt-BR');
+      });
+      const filename = `colaboradores_${sectorName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`;
+      exportDataToCsv(dataToExport, headers, filename);
+    }
+    function generateAndExportCollabCsv(matricula) {
+      if (!currentSelectedMatricula || !processedPeriodData || currentSelectedMatricula !== matricula) {
+        showToast("Abra o painel do colaborador.", "warning");
+        return;
+      }
+      const periods = Object.keys(processedPeriodData);
+      let collabInfo = null;
+      for(let i = periods.length - 1; i >= 0; i--) {
+        const data = processedPeriodData[periods[i]]?.collaborators?.[matricula];
+        if (data) { collabInfo = data; break; }
+      }
+      collabInfo = collabInfo || { name: `Matrícula ${matricula}` };
+      const dataToExport = [];
+      const safePeriodHeaders = periods.map(p => p.replace(/[^a-zA-Z0-9_]/g, '_'));
+      const headers = ['Tipo_Hora', ...safePeriodHeaders];
+      const diffHeaders = [];
+      if (periods.length > 1) {
+        for (let i = 1; i < periods.length; i++) {
+          const hDiff = `Dif_${safePeriodHeaders[0]}_vs_${safePeriodHeaders[i]}`;
+          const hPerc = `Perc_${safePeriodHeaders[0]}_vs_${safePeriodHeaders[i]}`;
+          headers.push(hDiff, hPerc);
+          diffHeaders.push({ diff: hDiff, perc: hPerc, indexA: 0, indexB: i });
+        }
+      }
+      HOUR_TYPES.forEach(hourType => {
+        const row = { Tipo_Hora: HOUR_TYPE_DISPLAY_NAMES[hourType] || hourType };
+        const values = periods.map(p => processedPeriodData[p]?.collaborators?.[matricula]?.[hourType] ?? 0);
+        periods.forEach((p, idx) => row[safePeriodHeaders[idx]] = formatMinutesToHHMM(values[idx]));
+        diffHeaders.forEach(dh => {
+          const valA = values[dh.indexA];
+          const valB = values[dh.indexB];
+          const { diff, percent } = calculateDiff(valA, valB);
+          row[dh.diff] = formatDiffValue(diff);
+          row[dh.perc] = formatPercentValue(percent, valB);
+        });
+        dataToExport.push(row);
+      });
+      const totalRow = { Tipo_Hora: 'TOTAL HE' };
+      const totalValues = periods.map(p => {
+        const collabP = processedPeriodData[p]?.collaborators?.[matricula];
+        return collabP ? calculateCollaboratorTotalHE(collabP) : 0;
+      });
+      periods.forEach((p, idx) => totalRow[safePeriodHeaders[idx]] = formatMinutesToHHMM(totalValues[idx]));
+      diffHeaders.forEach(dh => {
+        const valA = totalValues[dh.indexA];
+        const valB = totalValues[dh.indexB];
+        const { diff, percent } = calculateDiff(valA, valB);
+        totalRow[dh.diff] = formatDiffValue(diff);
+        totalRow[dh.perc] = formatPercentValue(percent, valB);
+      });
+      dataToExport.push(totalRow);
+      const filename = `analise_${collabInfo.name?.replace(/[^a-zA-Z0-9]/g, '_')}_${matricula}_${new Date().toISOString().slice(0,10)}.csv`;
+      exportDataToCsv(dataToExport, headers, filename);
+    }
+    // === PDF Export ===
+    async function exportResultsToPdf(target) {
+      const { jsPDF } = window.jspdf;
+      let pdfElement = null;
+      let pdfFilename = 'analise_horas_extras.pdf';
+      let loadingText = 'Gerando PDF...';
+      let titleText = 'Análise Horas Extras';
+      let sourceDescription = '';
+
+      if (target === 'sector') {
+        if (!currentSelectedSector) { showToast("Selecione um setor.", "warning"); return; }
+        const activeTabPanel = document.querySelector('.tab-panel.active');
+        if (!activeTabPanel || !SECTOR_SPECIFIC_TABS.includes(activeTabPanel.id)) { showToast("Selecione uma aba de DETALHES DO SETOR para exportar.", "warning"); return; }
+        const activeTabLink = document.querySelector(`.tab-link[data-tab="${activeTabPanel.id}"]`);
+        const tabName = activeTabLink ? activeTabLink.textContent : activeTabPanel.id.replace('tab-','');
+        pdfElement = activeTabPanel;
+        sourceDescription = `Setor ${currentSelectedSector} - ${tabName}`;
+        titleText = `Análise Setor: ${currentSelectedSector} (${tabName})`;
+        pdfFilename = `analise_setor_${currentSelectedSector.replace(/[^a-zA-Z0-9]/g, '_')}_${tabName.toLowerCase().replace(/\s/g,'_')}.pdf`;
+        loadingText = `Gerando PDF: ${sourceDescription}...`;
+      } else if (target === 'collaborator') {
+        if (!currentSelectedMatricula) { showToast("Abra o painel do colaborador.", "warning"); return; }
+        // Agora usamos o container centralizado do modal para exportar o conteúdo completo
+        pdfElement = document.getElementById("collaborator-detail-container");
+        sourceDescription = collabPanelTitle.textContent || `Colaborador ${currentSelectedMatricula}`;
+        titleText = sourceDescription;
+        const safeTitle = titleText.replace(/[^a-zA-Z0-9_ -]/g, '').replace(/\s-\s/g, '_');
+        pdfFilename = `analise_${safeTitle}.pdf`;
+        loadingText = `Gerando PDF: ${sourceDescription}...`;
+      } else { showToast("Erro: Alvo PDF inválido.", "error"); return; }
+
+      if (!pdfElement || (pdfElement.offsetParent === null && target !== 'collaborator')) {
+        if(target === 'collaborator' && !collaboratorDetailPanel.classList.contains('visible')){
+          showToast("Painel do colaborador não está visível.", "warning"); return;
+        } else if (target !== 'collaborator') {
+          showToast("Conteúdo não visível para exportar.", "warning"); return;
+        }
+      }
+      loadingTextSpan.textContent = loadingText;
+      loadingOverlay.style.display = 'flex';
+      exportPdfBtn.disabled = true;
+      exportCollabPdfBtn.disabled = true;
+      try {
+        const tempTitle = document.createElement('h2');
+        tempTitle.innerText = titleText;
+        tempTitle.style.marginBottom = '20px';
+        tempTitle.style.textAlign = 'center';
+        tempTitle.style.fontSize = '1.5em';
+        tempTitle.style.color = '#333';
+        pdfElement.insertBefore(tempTitle, pdfElement.firstChild);
+        const hiddenElements = pdfElement.querySelectorAll('.filter-container, label[for^="filter-"], .csv-btn, .panel-close-btn, button:not(#exportCollabPdfBtn)');
+        hiddenElements.forEach(el => el.style.visibility = 'hidden');
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const canvas = await html2canvas(pdfElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+        pdfElement.removeChild(tempTitle);
+        hiddenElements.forEach(el => el.style.visibility = 'visible');
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const margin = 40;
+        const imgProps = pdf.getImageProperties(imgData);
+        const imgWidth = imgProps.width;
+        const imgHeight = imgProps.height;
+        const maxWidth = pdfWidth - 2 * margin;
+        const maxHeight = pdfHeight - 2 * margin;
+        const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
+        const finalImgWidth = imgWidth * ratio;
+        const finalImgHeight = imgHeight * ratio;
+        const x = (pdfWidth - finalImgWidth) / 2;
+        let y = margin;
+        let heightLeft = finalImgHeight;
+        let position = y;
+        pdf.addImage(imgData, 'PNG', x, position, finalImgWidth, finalImgHeight);
+        heightLeft -= maxHeight;
+        while (heightLeft > 0) {
+          position = margin - (finalImgHeight - heightLeft);
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', x, position, finalImgWidth, finalImgHeight);
+          heightLeft -= maxHeight;
+        }
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.setFontSize(8);
+          pdf.setTextColor(150);
+          pdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, margin, pdfHeight - margin / 2, { align: 'left'});
+          pdf.text(`Página ${i} de ${totalPages}`, pdfWidth - margin, pdfHeight - margin / 2, { align: 'right' });
+        }
+        pdf.save(pdfFilename);
+        showToast(`PDF "${pdfFilename}" gerado!`, 'success');
+      } catch (error) {
+        console.error(`Erro gerar PDF (${target}):`, error);
+        showToast(`Erro ao gerar PDF. Detalhes no console.`, 'error', 5000);
+      } finally {
+        loadingOverlay.style.display = 'none';
+        loadingTextSpan.textContent = 'Analisando...';
+        exportPdfBtn.disabled = !currentSelectedSector || !SECTOR_SPECIFIC_TABS.includes(currentActiveTab);
+        exportCollabPdfBtn.disabled = !currentSelectedMatricula;
+      }
+    }
+
+    /* === Export Data to CSV (Função de apoio – implemente conforme sua lógica) === */
+    function exportDataToCsv(data, headers, filename) {
+      // Cria o conteúdo CSV
+      const csvRows = [];
+      csvRows.push(headers.join(','));
+      data.forEach(row => {
+        const values = headers.map(header => `"${row[header] ?? ''}"`);
+        csvRows.push(values.join(','));
+      });
+      const csvString = csvRows.join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
